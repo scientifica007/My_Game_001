@@ -1,6 +1,6 @@
 import {WAVES,LEVELS} from './config.js';
 // Progressive difficulty with explicit reward recovery so the last stage can be won.
-export const HEALTH_MULTIPLIERS=Object.freeze([1,1.9,3.4,3.85,4.30]);
+export const HEALTH_MULTIPLIERS=Object.freeze([1,1.9,3.4,3.85,4.05]);
 export const REWARD_FACTORS=Object.freeze([1,.78,.85,1.04,1.16]);
 export function enemyBlueprint(stage,round,index,count){
  if(!Number.isInteger(stage)||stage<1||stage>LEVELS)throw new RangeError('invalid stage');
