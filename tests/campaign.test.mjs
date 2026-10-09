@@ -321,9 +321,13 @@ function strategicStageProbe(stage){
 
 test('stage 4 feasibility probe under human-usable placement and upgrade actions',()=>{
  const s=strategicStageProbe(4);
- assert.ok(['lost','intermission'].includes(s.state));
+ assert.equal(s.state,'intermission','A human-action defense must clear stage four');
+ assert.equal(s.level,5);
+ assert.equal(s.life,12);
 });
 test('stage 5 feasibility probe under human-usable placement and upgrade actions',()=>{
  const s=strategicStageProbe(5);
- assert.ok(['lost','won'].includes(s.state));
+ assert.equal(s.state,'won','A human-action defense must be able to finish all five stages');
+ assert.ok(s.life>=1,'Winning strategy must survive the final stage boss');
+ assert.equal(s.wave,25);
 });
