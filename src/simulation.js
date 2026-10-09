@@ -1,7 +1,7 @@
 import {enemyBlueprint} from './levels.js';
 import {waveBonus} from './economy.js';
 export function createSimulation({world,C,WAVES,TOTAL_WAVES,center,cfg,localWave,beep,poof,win,lose,advanceLevel,updateUI,msg}){
-function spawnEnemy(){const idx=world.spawnIndex++,stats=enemyBlueprint(world.level,localWave(),idx,world.spawnMax),xy=center(...PATH[0]);world.enemies.push({...stats,progress:0,x:xy.x,y:xy.y,slowTime:0,slowStrength:0,dead:false,radius:stats.kind==='boss'?21:stats.kind==='heavy'?16:stats.kind==='fast'?10:13});world.spawnLeft--;world.spawned++}
+function spawnEnemy(){const idx=world.spawnIndex++,stats=enemyBlueprint(world.level,localWave(),idx,world.spawnMax),xy=center(...world.PATH[0]);world.enemies.push({...stats,progress:0,x:xy.x,y:xy.y,slowTime:0,slowStrength:0,dead:false,radius:stats.kind==='boss'?21:stats.kind==='heavy'?16:stats.kind==='fast'?10:13});world.spawnLeft--;world.spawned++}
 
 function hurt(e,amount,attackType='arrow'){if(e.dead)return;const armoured=e.kind==='heavy'||e.kind==='boss';const multiplier=armoured?(attackType==='arrow'?.75:attackType==='wind'?.85:1):e.kind==='fast'&&attackType==='cannon'?.8:1;e.hp-=Math.max(1,Math.round(amount*multiplier));poof(e.x,e.y,e.kind==='heavy'||e.kind==='boss'?'#f9a775':'#fff0ad',3);if(e.hp<=0){e.dead=true;world.gold+=e.reward;world.kills++;poof(e.x,e.y,'#8ae6b7',12);beep(260+Math.random()*100,.045,'triangle',.018)}}
 
