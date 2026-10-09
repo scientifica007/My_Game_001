@@ -71,7 +71,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation;cursor:cro
 <div class="page">
   <header class="top">
     <div class="logo"><span class="emblem" aria-hidden="true">🌴</span><div><h1>حُماة الواحة</h1><div class="tag">OASIS DEFENDERS · لعبة دفاع استراتيجية</div></div></div>
-    <div class="topRight"><span class="pill">5 موجات · لا تحتاج إلى إنترنت</span><button id="soundBtn" class="btn small" type="button" aria-label="تبديل الصوت">🔊 الصوت</button><button id="resetBtn" class="btn small" type="button">↻ لعبة جديدة</button></div>
+    <div class="topRight"><span class="pill">5 موجات · لا تحتاج إلى إنترنت</span><button id="soundBtn" class="btn small" type="button" aria-label="تبديل الصوت">🔊 الصوت</button><button id="speedBtn" class="btn small" type="button" aria-pressed="false" aria-label="تبديل سرعة اللعبة">⚡ السرعة ×1</button><button id="resetBtn" class="btn small" type="button">↻ لعبة جديدة</button></div>
   </header>
   <div class="layout">
     <main class="gamecol">
@@ -90,7 +90,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation;cursor:cro
           <div id="toast" class="floatingToast" role="status" aria-live="polite"></div>
         </div>
       </div>
-      <div class="gamehelp"><div class="legend"><span><i class="dot road"></i>طريق الأعداء</span><span><i class="dot oasis"></i>بوابة الواحة</span></div><span>اختصارات: 1 و2 للأبراج · مسافة للموجة · P للإيقاف</span></div>
+      <div class="gamehelp"><div class="legend"><span><i class="dot road"></i>طريق الأعداء</span><span><i class="dot oasis"></i>بوابة الواحة</span></div><span>اختصارات: 1 و2 للأبراج · مسافة للموجة · P للإيقاف · F للسرعة</span></div>
     </main>
     <aside class="side">
       <section class="panel">
@@ -122,14 +122,14 @@ const pathSet=new Set(PATH.map(p=>p.join(',')));
 const $=id=>document.getElementById(id),canvas=$('game'),ctx=canvas.getContext('2d');
 const cfg={arrow:{cost:55,damage:24,rate:.49,range:2.45,sell:35},cannon:{cost:95,damage:47,rate:1.26,range:2.4,sell:60}};
 let gold=170,life=12,wave=0,kills=0,selected='arrow',selectedTower=null,towers=[],enemies=[],bullets=[],fx=[];
-let state='intro',hover=null,spawnLeft=0,spawnIndex=0,spawnClock=0,spawnMax=0,spawned=0,last=0,toastTimeout=0,sound=true,audioCtx=null,frames=0,winCount=0;
-try{winCount=+(localStorage.getItem('oasis-defenders-wins')||0)}catch(e){}
+let state='intro',hover=null,spawnLeft=0,spawnIndex=0,spawnClock=0,spawnMax=0,spawned=0,last=0,toastTimeout=0,sound=true,audioCtx=null,frames=0,winCount=0,speed=1,bestScore=0;
+try{winCount=+(localStorage.getItem('oasis-defenders-wins')||0);bestScore=+(localStorage.getItem('oasis-defenders-best-score')||0)}catch(e){}
 const center=(c,r)=>({x:(c+.5)*C,y:(r+.5)*C});
 const rand=(x,y)=>{const v=Math.sin(x*127.1+y*311.7)*43758.5453;return v-Math.floor(v)};
 const active=()=>state==='ready'||state==='battle'||state==='paused';
 function beep(freq=440,duration=.06,shape='sine',volume=.035){if(!sound)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=shape;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 function msg(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('toast').classList.remove('visible'),2200)}
-function reset(start=true){gold=170;life=12;wave=0;kills=0;selected='arrow';selectedTower=null;towers=[];enemies=[];bullets=[];fx=[];spawnLeft=0;spawnIndex=0;spawnClock=0;spawned=0;spawnMax=0;state=start?'ready':'intro';$('overlay').classList.toggle('hidden',start);choose('arrow');updateUI()}
+function reset(start=true){speed=1;gold=170;life=12;wave=0;kills=0;selected='arrow';selectedTower=null;towers=[];enemies=[];bullets=[];fx=[];spawnLeft=0;spawnIndex=0;spawnClock=0;spawned=0;spawnMax=0;state=start?'ready':'intro';$('overlay').classList.toggle('hidden',start);choose('arrow');updateUI()}
 function showOverlay(icon,title,text,btn){$('modalIcon').textContent=icon;$('modalTitle').textContent=title;$('modalText').textContent=text;$('modalBtn').textContent=btn;$('overlay').classList.remove('hidden')}
 function choose(type){if(!active())return;selected=type;selectedTower=null;$('arrowBtn').classList.toggle('selected',type==='arrow');$('cannonBtn').classList.toggle('selected',type==='cannon');$('arrowBtn').setAttribute('aria-pressed',String(type==='arrow'));$('cannonBtn').setAttribute('aria-pressed',String(type==='cannon'));updateUI()}
 function valid(c,r){return c>=0&&c<COLS&&r>=0&&r<ROWS&&!pathSet.has(c+','+r)&&!towers.some(t=>t.c===c&&t.r===r)}
@@ -161,9 +161,10 @@ function simulate(dt){
  bullets=bullets.filter(b=>!b.dead);enemies=enemies.filter(e=>!e.dead);
  if(spawnLeft===0&&enemies.length===0){if(wave===WAVES){win()}else{state='ready';const bonus=35+wave*9;gold+=bonus;bullets=[];msg('نجحت! مكافأة الموجة: '+bonus+' ذهب');beep(650,.13);setTimeout(()=>beep(830,.2),140)}updateUI()}
 }
-function win(){state='won';try{winCount++;localStorage.setItem('oasis-defenders-wins',String(winCount))}catch(e){}showOverlay('🏆','انتصرت!','نجحت في حماية الواحة خلال الموجات الخمس. قضيت على '+kills+' عدوًا، وبقيت '+life+' نقطة صحة. يمكنك إعادة المحاولة وتحسين نتيجتك.','العب مرة أخرى');beep(700,.2);setTimeout(()=>beep(900,.28),210);updateUI()}
+function win(){state='won';const score=kills*10+life*25+gold;winCount++;bestScore=Math.max(bestScore,score);try{localStorage.setItem('oasis-defenders-wins',String(winCount));localStorage.setItem('oasis-defenders-best-score',String(bestScore))}catch(e){}showOverlay('🏆','انتصرت!','نجحت في حماية الواحة خلال الموجات الخمس. نتيجتك: '+score+' نقطة. أفضل نتيجة: '+bestScore+' نقطة. الانتصارات: '+winCount+'.','العب مرة أخرى');beep(700,.2);setTimeout(()=>beep(900,.28),210);updateUI()}
 function lose(){state='lost';enemies=[];bullets=[];showOverlay('🌪️','سقطت الواحة','وصل الأعداء إلى الواحة قبل انتهاء الدفاع. بلغت الموجة '+wave+' وقضيت على '+kills+' عدوًا. جرّب توزيع الأبراج قرب انعطافات الطريق.','حاول مجددًا');updateUI()}
 function updateUI(){
+ $('speedBtn').textContent='⚡ السرعة ×'+speed;$('speedBtn').setAttribute('aria-pressed',String(speed===2));
  $('goldValue').textContent=gold;$('lifeValue').textContent=life+' ♥';$('waveValue').textContent=wave+' / '+WAVES;$('killsValue').textContent=kills;
  const ready=state==='ready',battle=state==='battle',paused=state==='paused';
  $('waveBtn').disabled=!ready;$('waveBtn').textContent=wave===0?'▶ الموجة الأولى':wave===WAVES?'اكتملت الموجات':'▶ الموجة '+(wave+1);
@@ -216,11 +217,11 @@ function drawFx(dt){for(const f of fx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.98;f.vy*
 function drawHover(){if(!hover||!active()||state==='paused')return;const c=Math.floor(hover.x/C),r=Math.floor(hover.y/C);if(c<0||r<0||c>=COLS||r>=ROWS)return;const t=towerAt(c,r);if(t)return;const v=valid(c,r),x=c*C,y=r*C;rr(x+3,y+3,C-6,C-6,7,v?'#6ce8ac25':'#ff77772e',v?'#aaf3d9':'#ffb2a9');if(v){ctx.beginPath();ctx.arc(x+32,y+32,(cfg[selected].range)*C,0,Math.PI*2);ctx.strokeStyle='#ffffff50';ctx.setLineDash([8,5]);ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff5d1';ctx.font='bold 24px Tahoma';ctx.textAlign='center';ctx.fillText('+',x+32,y+41)}}
 function drawPause(){if(state==='paused'){ctx.fillStyle='#0e202ab8';ctx.fillRect(0,0,W,H);rr(230,193,308,126,15,'#203948e8','#80a6a0');ctx.fillStyle='#f7edcf';ctx.font='bold 30px Tahoma';ctx.textAlign='center';ctx.fillText('اللعبة متوقفة',384,244);ctx.font='15px Tahoma';ctx.fillText('اضغط «متابعة» للاستئناف',384,282)}}
 function render(dt){ctx.clearRect(0,0,W,H);drawMap();drawHover();drawTowers();drawEnemies();drawBullets();drawFx(dt);drawPause()}
-function frame(ms){const dt=Math.min((ms-last)/1000||0,.045);last=ms;if(state==='battle')simulate(dt);render(state==='paused'?0:dt);if(++frames%12===0&&state==='battle')updateUI();requestAnimationFrame(frame)}
+function frame(ms){const dt=Math.min((ms-last)/1000||0,.045);last=ms;if(state==='battle')simulate(dt*speed);render(state==='paused'?0:dt*speed);if(++frames%12===0&&state==='battle')updateUI();requestAnimationFrame(frame)}
 canvas.addEventListener('pointermove',e=>{hover=coord(e)});canvas.addEventListener('pointerleave',()=>{hover=null});canvas.addEventListener('click',clickMap);
 $('arrowBtn').addEventListener('click',()=>choose('arrow'));$('cannonBtn').addEventListener('click',()=>choose('cannon'));$('waveBtn').addEventListener('click',startWave);$('pauseBtn').addEventListener('click',pause);$('upgradeBtn').addEventListener('click',upgrade);$('sellBtn').addEventListener('click',sell);$('modalBtn').addEventListener('click',()=>reset(true));
-$('resetBtn').addEventListener('click',()=>{reset(true);msg('بدأت لعبة جديدة')});$('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 الصوت':'🔇 صامت';if(sound)beep(530,.09)});
-document.addEventListener('keydown',e=>{if(e.target instanceof HTMLButtonElement&&e.code==='Space')return;if(e.key==='1')choose('arrow');else if(e.key==='2')choose('cannon');else if(e.key.toLowerCase()==='p')pause();else if(e.code==='Space'){e.preventDefault();startWave()}});
+$('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;updateUI();msg('سرعة اللعب: ×'+speed)});$('resetBtn').addEventListener('click',()=>{reset(true);msg('بدأت لعبة جديدة')});$('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 الصوت':'🔇 صامت';if(sound)beep(530,.09)});
+document.addEventListener('keydown',e=>{if(e.target instanceof HTMLButtonElement&&e.code==='Space')return;if(e.key==='1')choose('arrow');else if(e.key==='2')choose('cannon');else if(e.key.toLowerCase()==='p')pause();else if(e.key.toLowerCase()==='f'){$('speedBtn').click()}else if(e.code==='Space'){e.preventDefault();startWave()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='battle'){state='paused';updateUI()}});
 updateUI();requestAnimationFrame(frame);
 // Expose minimal diagnostic state for offline verification without changing gameplay.
