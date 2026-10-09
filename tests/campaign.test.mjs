@@ -374,3 +374,77 @@ test('complete five-stage campaign is beatable from initial 170 gold using playe
  assert.ok(g.state().life>=1);
  assert.deepEqual(reached.map(x=>x[0]),[1,2,3,4,5]);
 });
+
+
+// Exploratory, non-release diagnostic for the player's stage-four screenshot.
+// Screenshot positions are approximate, so this is not an exact game-state replay.
+function stageFourLayoutProbe(placements,{idealized=false,initialGold=312}={}){
+ const g=boot(),costs={arrow:55,cannon:95,wind:80};
+ g.harness.readyAt(4);
+ g.harness.setLife(7);
+ g.harness.funds(idealized?9999:initialGold);
+ let next=0,steps=0,lastWave=0;
+ if(idealized){
+   for(const [c,r,type] of placements){
+     g.place(c,r,type);
+     const tower=g.harness.towerInfo().find(t=>t.c===c&&t.r===r);
+     if(!tower)throw new Error('Unbuildable position: '+JSON.stringify([c,r,type]));
+     for(let i=0;i<2;i++){
+       g.elements.get('game').events.click({clientX:(c+.5)*64,clientY:(r+.5)*64});
+       g.elements.get('upgradeBtn').click();
+     }
+   }
+   g.harness.funds(0);
+ } 
+ const records=[];
+ while(steps++<15500){
+   const st=g.state();
+   if(st.state==='ready')g.elements.get('waveBtn').click();
+   if(!idealized && steps%8===0){
+     const towers=g.harness.towerInfo();
+     if(next<placements.length){
+       const [c,r,type]=placements[next];
+       if(st.gold>=costs[type]){
+         g.place(c,r,type);
+         if(g.harness.towerInfo().length>towers.length)next++;
+         else throw new Error('Invalid layout '+JSON.stringify([c,r,type]));
+       }
+     } else {
+       for(const t of towers.filter(t=>t.level<3)){
+         const p=45+t.level*25+(t.type==='cannon'?20:t.type==='wind'?8:0);
+         if(g.state().gold>=p){
+           g.elements.get('game').events.click({clientX:(t.c+.5)*64,clientY:(t.r+.5)*64});
+           g.elements.get('upgradeBtn').click();break;
+         }
+       }
+     }
+   }
+   g.tick();
+   const now=g.state();
+   if(now.wave!==lastWave){
+     lastWave=now.wave;
+     records.push([now.wave,now.life,now.gold,now.numberOfTowers]);
+   }
+   if(['lost','intermission','won'].includes(now.state))break;
+ }
+ const result={...g.state(),steps,records,layout:g.harness.towerInfo()};
+ return JSON.parse(JSON.stringify(result));
+}
+
+test('diagnostic: compare screenshot placement, ideal upgrades and reference setup at stage four',()=>{
+ const screenshot=[
+   [3,3,'cannon'],[4,3,'wind'],[6,4,'cannon'],
+   [6,3,'wind'],[8,4,'cannon'],[8,5,'arrow']
+ ];
+ const proven=[
+   [4,3,'cannon'],[7,6,'cannon'],[9,5,'cannon'],
+   [2,5,'wind'],[7,2,'arrow'],[10,3,'arrow']
+ ];
+ const actual=stageFourLayoutProbe(screenshot,{initialGold:312});
+ const maxed=stageFourLayoutProbe(screenshot,{idealized:true});
+ const reference=stageFourLayoutProbe(proven,{initialGold:309});
+ console.log('STAGE4_SCREENSHOT_DIAGNOSTIC '+JSON.stringify({actual,maxed,reference}));
+ assert.equal(reference.state,'intermission','The reference strategy remains winnable');
+ assert.ok(['lost','intermission'].includes(actual.state));
+ assert.ok(['lost','intermission'].includes(maxed.state));
+});
