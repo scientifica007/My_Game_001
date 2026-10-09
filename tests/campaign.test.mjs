@@ -30,7 +30,7 @@ function boot() {
     setTimeout(){return 1;},clearTimeout(){}};
   // Only accelerate the test renderer; keep actual gameplay simulation intact.
   let script="import {enemyBlueprint} from './levels.js';\n"+original.replace("render(state==='paused'?0:dt*speed);","");
-  const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];updateUI()},attemptAdvance(){return advanceLevel()},completeLevel(){state='battle';spawnLeft=0;enemies=[];return advanceLevel()},fatalLeakAtFinalWave(stage){level=stage;wave=stage*WAVES;selectMap(stage);life=1;state='battle';spawnLeft=0;spawned=1;spawnMax=1;towers=[];bullets=[];enemies=[{kind:'normal',hp:10,maxHp:10,damage:1,reward:10,dead:false,progress:PATH.length-1-.005,speed:1,slowTime:0,slowStrength:0,x:0,y:0}];updateUI()},emptyDeadFinalWave(stage){level=stage;wave=stage*WAVES;selectMap(stage);life=0;state='battle';spawnLeft=0;enemies=[];bullets=[];updateUI()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])},towerInfo(){return towers.map(t=>({c:t.c,r:t.r,type:t.type,level:t.level}))}};})();"
+  const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];saveCheckpoint();updateUI()},attemptAdvance(){return advanceLevel()},completeLevel(){state='battle';spawnLeft=0;enemies=[];return advanceLevel()},fatalLeakAtFinalWave(stage){level=stage;wave=stage*WAVES;selectMap(stage);checkpoint={level:stage,wave:(stage-1)*WAVES,life:10,gold:300,kills:22};life=1;state='battle';spawnLeft=0;spawned=1;spawnMax=1;towers=[];bullets=[];enemies=[{kind:'normal',hp:10,maxHp:10,damage:1,reward:10,dead:false,progress:PATH.length-1-.005,speed:1,slowTime:0,slowStrength:0,x:0,y:0}];updateUI()},emptyDeadFinalWave(stage){level=stage;wave=stage*WAVES;selectMap(stage);checkpoint={level:stage,wave:(stage-1)*WAVES,life:10,gold:300,kills:22};life=0;state='battle';spawnLeft=0;enemies=[];bullets=[];updateUI()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])},towerInfo(){return towers.map(t=>({c:t.c,r:t.r,type:t.type,level:t.level}))}};})();"
   script=script.replace(/\}\)\(\);\s*$/,injection);
   const bundle=buildSync({stdin:{contents:script,resolveDir:resolve('src'),sourcefile:'src/main.js',loader:'js'},bundle:true,format:'iife',platform:'browser',write:false,logLevel:'silent'}).outputFiles[0].text;
   assert.doesNotThrow(()=>new Script(bundle));
@@ -41,10 +41,10 @@ function boot() {
   return {window,elements,tick,place,state:()=>window.__oasisTest(),harness:window.__campaignHarness};
 }
 
-test('campaign displays three levels and fifteen waves',()=>{
+test('campaign displays five levels and twenty-five waves',()=>{
   assert.match(html,/id="levelValue"/);
-  assert.match(html,/3 مستويات · 15 موجة/);
-  assert.match(configSource,/LEVELS=3,TOTAL_WAVES=WAVES\*LEVELS/);
+  assert.match(html,/5 مستويات · 25 موجة/);
+  assert.match(configSource,/LEVELS=5,TOTAL_WAVES=WAVES\*LEVELS/);
   const g=boot();
   assert.equal(g.state().level,1);
   assert.equal(g.state().localWave,0);
@@ -78,10 +78,10 @@ test('no-defense strategy loses early rather than winning passively',()=>{
 
 test('tower cap makes resource allocation necessary, tougher stages permit fewer towers',()=>{
   const g=boot();
-  for(let l=1;l<=3;l++){
+  for(let l=1;l<=5;l++){
     g.harness.readyAt(l);
     for(let c=0;c<12;c++)g.place(c,0,'arrow');
-    const max=[8,7,6][l-1];
+    const max=[8,7,6,6,6][l-1];
     assert.equal(g.state().numberOfTowers,max);
     assert.equal(g.state().towerLimit,max);
     assert.equal(g.state().gold,800-max*55);
@@ -160,8 +160,9 @@ test('balance probe: stage 3 needs good placement and upgrades',()=>{
   }
   const result=g.state();
   console.log('Stage 3 strategy probe',JSON.stringify({state:result.state,localWave:result.localWave,life:result.life,kills:result.kills,gold:result.gold,towers:g.harness.towerInfo(),steps,records:waveRecords}));
-  assert.equal(result.state,'won','A well-spaced and upgraded defense must still be able to win stage 3');
-  assert.ok(result.life>=1&&result.life<=6,'Stage 3 should remain a close contest under the reference strategy');
+  assert.equal(result.state,'intermission','Stage 3 must be cleared before unlocking stage 4');
+  assert.equal(result.level,4);
+  assert.ok(result.life>=1&&result.life<=12,'The successful strategy should survive stage 3');
 });
 
 test('poorly distributed towers fail even when enough gold was spent',()=>{
@@ -194,15 +195,19 @@ test('fatal leak on the last wave of level 2 never unlocks level 3',()=>{
   assert.equal(lost.life,0);
   assert.equal(lost.level,2,'The player must remain at the failed level');
   assert.equal(lost.wave,10);
-  assert.equal(g.elements.get('modalBtn').textContent,'حاول مجددًا');
+  assert.equal(g.elements.get('modalBtn').textContent,'إعادة المستوى 2');
+  assert.equal(g.elements.get('restartCampaignBtn').hidden,false);
   assert.equal(g.harness.attemptAdvance(),false,'A direct unlock attempt must be rejected');
   g.tick(30);
   assert.equal(g.state().state,'lost');
   assert.equal(g.state().level,2);
   g.elements.get('modalBtn').click();
-  assert.equal(g.state().level,1,'Retry restarts the campaign, not the following level');
+  assert.equal(g.state().level,2,'Replay restarts only the failed level, not the next one');
   assert.equal(g.state().state,'ready');
-  assert.equal(g.state().life,12);
+  assert.equal(g.state().life,10);
+  assert.equal(g.state().gold,300);
+  assert.equal(g.state().wave,5);
+  assert.equal(g.state().checkpointLevel,2);
 });
 
 test('zero-health and empty battlefield must resolve as defeat, not stage completion',()=>{
