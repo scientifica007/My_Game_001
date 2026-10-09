@@ -89,7 +89,7 @@ export function drawEnemySprite(ctx,e,time=0,reducedMotion=false){
   const hit=Math.max(0,e.hit||0);
   const x=e.x,y=e.y+bounce;
   oval(ctx,x+2,y+e.radius*.69,e.radius*1.12,6.3,'rgba(53,42,34,.30)');
-  ctx.save();ctx.translate(x,y);ctx.scale(scale*(1+hit*.04),scale*(1-hit*.035));
+  ctx.save();ctx.translate(x,y);ctx.rotate(Math.cos(e.facing??0)*.09);ctx.scale(scale*(1+hit*.04),scale*(1-hit*.035));
   // Feet animate independently of the round body.
   const legs=e.kind==='fast'?6:4;
   for(let i=0;i<legs;i++){
