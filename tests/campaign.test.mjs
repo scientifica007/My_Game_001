@@ -281,7 +281,8 @@ test('stage-entry snapshot is immutable during construction and combat',()=>{
 function strategicStageProbe(stage){
  const g=boot();
  g.harness.readyAt(stage);
- g.harness.funds(stage===4?330:350);
+ g.harness.funds(stage===4?309:350);
+ if(stage===4)g.harness.setLife(7); // matches a plausible outcome from stage 3
  // Reference setup consists only of normal, reproducible player inputs:
  // place a tower when affordable, upgrade it, start each available wave.
  const builds=stage===4?
