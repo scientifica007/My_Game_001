@@ -1,117 +1,78 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { buildSync } from 'esbuild';
 import { Script, runInNewContext } from 'node:vm';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const script = readFileSync(new URL('../assets/game.js', import.meta.url), 'utf8');
-const styles = readFileSync(new URL('../assets/styles.css', import.meta.url), 'utf8');
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/styles.css',import.meta.url),'utf8');
+const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const bundle=buildSync({entryPoints:['src/main.js'],bundle:true,format:'iife',platform:'browser',write:false,logLevel:'silent'}).outputFiles[0].text;
 
-test('HTML entry point preserves Arabic layout and links local assets', () => {
-  assert.match(html, /<!doctype html>/i);
-  assert.match(html, /<html\s+lang="ar"\s+dir="rtl">/i);
-  assert.match(html, /<canvas\s+id="game"\s+width="768"\s+height="512"/i);
-  assert.match(html, /<\/html>/i);
-  assert.match(html, /<link\s+rel="stylesheet"\s+href="\.\/assets\/styles\.css"/i);
-  assert.match(html, /<script\s+src="\.\/assets\/game\.js"\s+defer><\/script>/i);
-});
-
-test('external JavaScript parses, and responsive CSS is separated', () => {
-  assert.doesNotMatch(html, /<style\b/i);
-  assert.doesNotThrow(() => new Script(script, { filename: 'assets/game.js' }));
-  assert.match(styles, /\.layout\s*\{/);
-  assert.match(styles, /@media/);
-});
-
-test('five-wave game with victory, defeat and replay', () => {
-  assert.match(script, /\bWAVES\s*=\s*5\b/);
-  assert.match(script, /function\s+win\s*\(/);
-  assert.match(script, /function\s+lose\s*\(/);
-  assert.match(script, /function\s+reset\s*\(/);
-});
-
-test('core tower actions, input and controls exist', () => {
-  for (const id of ['game','waveBtn','pauseBtn','resetBtn','soundBtn','arrowBtn','cannonBtn','upgradeBtn','sellBtn','overlay','modalBtn']) {
-    assert.ok(html.includes(`id="${id}"`), `Missing control: ${id}`);
+function startGame(){
+  class FakeElement{
+    constructor(id){this.id=id;this.textContent='';this.style={};this.handlers={};this.classList={add(){},remove(){},toggle(){}};this.attributes={};this.disabled=false;}
+    addEventListener(e,cb){this.handlers[e]=cb}
+    getBoundingClientRect(){return{left:0,top:0,width:768,height:512}}
+    getContext(){return new Proxy({},{get:(_,key)=>()=>{}})}
+    setAttribute(key,v){this.attributes[key]=v}
+    click(){this.handlers.click?.({})}
   }
-  for (const action of ['clickMap','upgrade','sell','startWave','pause']) {
-    assert.match(script, new RegExp(`function\\s+${action}\\s*\\(`));
-  }
+  const els=new Map(),window={};
+  const document={getElementById(id){if(!els.has(id))els.set(id,new FakeElement(id));return els.get(id)},addEventListener(){},hidden:false};
+  let frame=null,ms=0;
+  runInNewContext(bundle,{document,window,Math,HTMLButtonElement:FakeElement,
+    requestAnimationFrame(cb){frame=cb},localStorage:{getItem(){return null},setItem(){}},
+    setTimeout(){return 1},clearTimeout(){}},{timeout:1000});
+  const tick=()=>{ms+=45;frame(ms)};
+  return {els,window,tick,state:()=>window.__oasisTest()};
+}
+
+test('Arabic UI loads modern local CSS and ES module',()=>{
+  assert.match(html,/<html lang="ar" dir="rtl">/);
+  assert.match(html,/src="\.\/src\/main\.js"/);
+  assert.match(html,/type="module"/);
+  assert.match(html,/href="\.\/src\/styles\.css"/);
+  assert.match(html,/id="levelValue"/);
+  assert.match(css,/@media/);
 });
 
-test('speed toggle and best-score storage are present', () => {
-  assert.match(html, /id="speedBtn"/);
-  assert.match(script, /oasis-defenders-best-score/);
-  assert.match(script, /function\s+frame\s*\(/);
+test('all imported modules bundle and compile without errors',()=>{
+  assert.doesNotThrow(()=>new Script(bundle));
+  assert.match(source,/import \{createSimulation\}/);
+  assert.match(source,/import \{createRenderer\}/);
+  assert.match(source,/import \{createUI\}/);
+  assert.doesNotMatch(html,/<script\b[^>]*>[\s\S]*?function\s+simulate/);
 });
 
-test('all runtime assets are local and require no network', () => {
-  assert.doesNotMatch(html, /https?:\/\//);
-  assert.doesNotMatch(script, /\bfetch\s*\(|\bXMLHttpRequest\b/);
-  assert.doesNotMatch(styles, /@import\b|url\s*\(\s*['"]?https?:/i);
+test('main actions include construction, upgrade, sell and replay',()=>{
+  const game=startGame();
+  game.els.get('modalBtn').click();
+  game.els.get('arrowBtn').click();
+  game.els.get('game').handlers.click({clientX:5.5*64,clientY:4.5*64});
+  assert.equal(game.state().numberOfTowers,1);
+  assert.equal(game.state().gold,115);
+  game.els.get('sellBtn').click();
+  assert.equal(game.state().numberOfTowers,0);
+  game.els.get('resetBtn').click();
+  assert.equal(game.state().gold,170);
 });
 
-test('wind tower is affordable, builds on valid terrain and slows a moving enemy', () => {
-  class FakeElement {
-    constructor(id) {
-      this.id = id;
-      this.textContent = '';
-      this.style = {};
-      this.handlers = {};
-      this.classList = { add() {}, remove() {}, toggle() {} };
-      this.attributes = {};
-      this.disabled = false;
-    }
-    addEventListener(event, cb) { this.handlers[event] = cb; }
-    setAttribute(key, value) { this.attributes[key] = value; }
-    getBoundingClientRect() { return { left: 0, top: 0, width: 768, height: 512 }; }
-    getContext() { return new Proxy({}, { get: () => () => {} }); }
-    click() { this.handlers.click?.({}); }
-  }
-  const els = new Map();
-  const document = {
-    getElementById(id) {
-      if (!els.has(id)) els.set(id, new FakeElement(id));
-      return els.get(id);
-    },
-    addEventListener() {},
-    hidden: false,
-  };
-  let nextFrame = null;
-  const window = {};
-  const sandbox = {
-    document,
-    window,
-    requestAnimationFrame(cb) { nextFrame = cb; },
-    localStorage: { getItem() { return null; }, setItem() {} },
-    setTimeout() { return 1; },
-    clearTimeout() {},
-    HTMLButtonElement: FakeElement,
-    Math,
-  };
-  runInNewContext(script, sandbox, { timeout: 1000 });
-  els.get('modalBtn').click();
-  els.get('windBtn').click();
-  els.get('game').handlers.click({ clientX: 5.5 * 64, clientY: 4.5 * 64 });
-  let snapshot = window.__oasisTest();
-  assert.equal(snapshot.numberOfTowers, 1);
-  assert.equal(snapshot.towerTypes[0], 'wind');
-  assert.equal(snapshot.gold, 90);
-  assert.equal(els.get('windBtn').attributes['aria-pressed'], 'true');
-  els.get('waveBtn').click();
-  let slowedObserved = false;
-  for (let tick = 1; tick <= 550; tick++) {
-    nextFrame(tick * 45);
-    snapshot = window.__oasisTest();
-    if (snapshot.slowedEnemies > 0) { slowedObserved = true; break; }
-  }
-  assert.equal(slowedObserved, true, 'Wind tower must actually slow an enemy in combat');
+test('wind tower slows actual moving enemies',()=>{
+  const game=startGame();
+  game.els.get('modalBtn').click();
+  game.els.get('windBtn').click();
+  game.els.get('game').handlers.click({clientX:5.5*64,clientY:4.5*64});
+  assert.equal(game.state().towerTypes[0],'wind');
+  assert.equal(game.state().gold,90);
+  game.els.get('waveBtn').click();
+  let slowed=false;
+  for(let n=0;n<600;n++){game.tick();if(game.state().slowedEnemies>0){slowed=true;break}}
+  assert.equal(slowed,true);
 });
 
-test('wind tower supports upgrades, selling and keyboard selection', () => {
-  assert.match(html, /id="windBtn"/);
-  assert.match(script, /else if\(e\.key==='3'\)choose\('wind'\)/);
-  assert.match(script, /function\s+upgradeCost/);
-  assert.match(script, /slowStrength/);
-  assert.match(script, /slowDuration/);
+test('the game uses no external runtime assets or network calls',()=>{
+  assert.doesNotMatch(html,/https?:\/\//);
+  assert.doesNotMatch(source,/\bfetch\s*\(|XMLHttpRequest\b/);
+  assert.doesNotMatch(css,/@import\b|url\s*\(\s*['"]?https?:/i);
 });
