@@ -27,7 +27,7 @@ function boot() {
     setTimeout(){return 1;},clearTimeout(){}};
   // Only accelerate the test renderer; keep actual gameplay simulation intact.
   let script=original.replace("render(state==='paused'?0:dt*speed);","");
-  const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];updateUI()},advanceLevel(){advanceLevel()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])}};})();";
+  const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];updateUI()},advanceLevel(){advanceLevel()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])},towerInfo(){return towers.map(t=>({c:t.c,r:t.r,type:t.type,level:t.level}))}};})();";
   script=script.replace(/\}\)\(\);\s*$/,injection);
   assert.doesNotThrow(()=>new Script(script));
   runInNewContext(script,context,{timeout:1000});
@@ -117,4 +117,44 @@ test('late-level starting income cannot buy unlimited high-damage towers',()=>{
   assert.equal(g.state().numberOfTowers,2);
   assert.equal(g.state().gold,65);
   assert.ok(g.state().gold<95);
+});
+
+test('balance probe: stage 3 needs good placement and upgrades',()=>{
+  const g=boot();
+  g.harness.readyAt(3);
+  g.harness.funds(255);
+  const locations=[[4,3,'cannon'],[9,4,'cannon'],[6,4,'arrow'],[2,3,'wind'],[10,2,'arrow'],[7,2,'arrow']];
+  const costs={arrow:55,cannon:95,wind:80};
+  let waveRecords=[],previousWave=0,steps=0;
+  const invest=()=>{
+    const info=g.harness.towerInfo();
+    if(info.length<locations.length){
+      const [c,r,type]=locations[info.length];
+      if(g.state().gold>=costs[type])g.place(c,r,type);
+    } else {
+      for(const tower of info.filter(x=>x.level<3)){
+        const upgradeCost=45+tower.level*25+(tower.type==='cannon'?20:tower.type==='wind'?8:0);
+        if(g.state().gold>=upgradeCost){
+          g.elements.get('game').events.click({clientX:(tower.c+.5)*64,clientY:(tower.r+.5)*64});
+          g.elements.get('upgradeBtn').click();
+          break;
+        }
+      }
+    }
+  };
+  while(steps++<13000){
+    if(steps%11===0) invest();
+    const before=g.state();
+    if(before.state==='ready'){
+      if(before.wave>=15)break;
+      g.elements.get('waveBtn').click();
+    }
+    g.tick();
+    const now=g.state();
+    if(now.wave!==previousWave){previousWave=now.wave;waveRecords.push([now.wave,now.life,now.gold,now.numberOfTowers]);}
+    if(now.state==='lost'||now.state==='won'||now.state==='intermission')break;
+  }
+  const result=g.state();
+  console.log('Stage 3 strategy probe',JSON.stringify({state:result.state,localWave:result.localWave,life:result.life,kills:result.kills,gold:result.gold,towers:g.harness.towerInfo(),steps,records:waveRecords}));
+  assert.ok(result.wave>=11);
 });
