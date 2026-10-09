@@ -1,5 +1,15 @@
 // Static, cached desert terrain plus inexpensive, animated atmospheric layers.
 // Nothing here changes routes, collisions, enemy statistics, or economy.
+// Road colors are deliberately more luminous than the buildable terrain,
+// so the enemy path stays legible at game scale in all three stages.
+export const ROAD_THEMES=Object.freeze([
+  Object.freeze({frame:'#FFF0D2',road:'#F1DEB8',inner1:'#E4C89B',inner2:'#C89D6B',
+    shadow:'rgba(75,49,30,.34)',outline:'rgba(100,68,39,.48)',highlight:'rgba(255,252,231,.64)'}),
+  Object.freeze({frame:'#FBE9DA',road:'#EACFB6',inner1:'#D8AD88',inner2:'#B98361',
+    shadow:'rgba(74,43,35,.35)',outline:'rgba(101,62,46,.52)',highlight:'rgba(255,244,229,.66)'}),
+  Object.freeze({frame:'#F3EAF1',road:'#DDD0D8',inner1:'#C7B0BF',inner2:'#9F8598',
+    shadow:'rgba(47,39,56,.38)',outline:'rgba(76,54,78,.51)',highlight:'rgba(255,245,255,.65)'})
+]);
 export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
   let cache = null, cacheKey = '';
   const tau = Math.PI * 2;
@@ -41,6 +51,7 @@ export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
       {a:'#c6a37f',b:'#ceaf8c',c:'#a98367',d:'#b58f6e',road:'#dfbd95',inner1:'#d5b18b',inner2:'#bb9677'},
       {a:'#af9aa0',b:'#bba5a1',c:'#8c7a81',d:'#a08b8c',road:'#dbbfaa',inner1:'#d0af9d',inner2:'#b59894'}
     ][Math.max(0,Math.min(2,world.level-1))];
+    const road=ROAD_THEMES[Math.max(0,Math.min(2,world.level-1))];
     g.fillStyle=shades.c;g.fillRect(0,0,W,H);
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const x=c*C,y=r*C,k=rand(c+1,r+1),isPath=world.pathSet.has(c+','+r);
@@ -80,19 +91,28 @@ export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
     g.beginPath();g.moveTo(0,94);g.bezierCurveTo(125,38,266,135,394,96);
     g.bezierCurveTo(515,55,635,131,W,83);g.lineTo(W,146);g.lineTo(0,146);g.fill();
     g.restore();
-    // Sculpted road: slightly displaced shadow, bevel, warm inside and stones.
+    // High-contrast stone road: a dark contact shadow, ivory rim and warm
+    // textured paving. The three layers remain cached with the terrain.
     for(const [c,r] of world.PATH){
       if(c<0||c>=COLS||r<0||r>=ROWS)continue;
       const x=c*C,y=r*C,k=rand(c+9,r+15);
-      round(g,x+3,y+5,C-4,C-4,10,'rgba(89,65,40,.20)');
-      round(g,x+1,y+1,C-2,C-2,9,shades.road);
-      round(g,x+5,y+7,C-10,C-12,7,
-        paintGradient(g,x,y,x+C,y+C,[[0,shades.inner1],[1,shades.inner2]]));
-      ellipse(g,x+17+24*k,y+19+24*k,2.5,1.7,'rgba(251,227,180,.63)');
-      ellipse(g,x+25+14*k,y+37-14*k,3,1.9,'rgba(120,83,51,.22)');
+      round(g,x+2,y+4,C-3,C-3,11,road.shadow);
+      round(g,x+1,y+1,C-2,C-2,10,road.frame);
+      g.beginPath();g.roundRect(x+1.5,y+1.5,C-3,C-3,9);
+      g.strokeStyle=road.outline;g.lineWidth=1.7;g.stroke();
+      round(g,x+5,y+6,C-10,C-11,7,road.road);
+      round(g,x+7,y+9,C-14,C-17,6,
+        paintGradient(g,x,y,x+C,y+C,[[0,road.inner1],[1,road.inner2]]));
+      g.fillStyle='rgba(255,251,229,.24)';g.fillRect(x+11,y+11,C-22,3);
+      ellipse(g,x+17+24*k,y+19+24*k,2.5,1.7,'rgba(255,238,198,.70)');
+      ellipse(g,x+25+14*k,y+37-14*k,3,1.9,'rgba(98,66,43,.27)');
     }
-    g.save();g.strokeStyle='rgba(255,238,192,.35)';g.lineWidth=1.4;g.setLineDash([4,11]);
-    g.beginPath();world.PATH.forEach(([c,r],i)=>{const p=center(c,r);i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);});
+    // A continuous dotted guide remains readable around every turn.
+    g.save();g.lineCap='round';g.lineJoin='round';
+    g.strokeStyle='rgba(90,63,42,.30)';g.lineWidth=5;g.beginPath();
+    world.PATH.forEach(([c,r],i)=>{const p=center(c,r);i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);});
+    g.stroke();
+    g.strokeStyle=road.highlight;g.lineWidth=2.4;g.setLineDash([6,9]);
     g.stroke();g.restore();
     // The oasis is a distinctive physical location at the end of each level.
     const exit=center(...world.PATH[world.PATH.length-2]);
