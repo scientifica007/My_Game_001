@@ -86,7 +86,7 @@ const world={
   get PATH(){return PATH}, set PATH(value){PATH=value},
   get pathSet(){return pathSet}, set pathSet(value){pathSet=value}
 };
-const {msg,showOverlay,updateUI}=createUI({world,$,cfg,LEVELS,WAVES,LEVEL_NAMES,active,localWave,towerLimit,upgradeCost});
+const {msg,showOverlay,updateUI}=createUI({world,$,cfg,LEVELS,WAVES,TOTAL_WAVES,LEVEL_NAMES,active,localWave,towerLimit,upgradeCost});
 const {simulate}=createSimulation({world,C,WAVES,TOTAL_WAVES,center,cfg,localWave,beep,poof,win,lose,advanceLevel,updateUI,msg});
 const {render}=createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active,valid,towerAt});
 
