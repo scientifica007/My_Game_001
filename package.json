@@ -1,0 +1,20 @@
+{
+  "name": "oasis-defenders",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Arabic tower-defense strategy campaign",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0",
+    "esbuild": "^0.25.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}
