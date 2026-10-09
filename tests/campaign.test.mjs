@@ -332,3 +332,45 @@ test('stage 5 feasibility probe under human-usable placement and upgrade actions
  assert.ok(s.life>=1,'Winning strategy must survive the final stage boss');
  assert.equal(s.wave,25);
 });
+
+test('complete five-stage campaign is beatable from initial 170 gold using player inputs only',()=>{
+ const g=boot();
+ const plans={
+   1:[[3,3,'arrow'],[5,4,'cannon'],[8,4,'cannon'],[2,3,'wind'],[9,4,'arrow'],[10,2,'cannon'],[5,6,'arrow'],[1,1,'arrow']],
+   2:[[4,4,'cannon'],[7,4,'cannon'],[9,5,'cannon'],[2,2,'wind'],[5,6,'arrow'],[10,3,'arrow'],[8,1,'arrow']],
+   3:[[4,3,'cannon'],[9,4,'cannon'],[6,4,'arrow'],[2,3,'wind'],[10,2,'arrow'],[7,2,'arrow']],
+   4:[[4,3,'cannon'],[7,6,'cannon'],[9,5,'cannon'],[2,5,'wind'],[7,2,'arrow'],[10,3,'arrow']],
+   5:[[3,2,'cannon'],[6,3,'cannon'],[9,6,'cannon'],[1,5,'wind'],[7,5,'arrow'],[10,4,'arrow']]
+ };
+ const costs={arrow:55,cannon:95,wind:80};
+ const reached=[];
+ let steps=0,lastLevel=0;
+ while(steps++<25000){
+   const st=g.state();
+   if(st.level!==lastLevel){reached.push([st.level,st.life,st.gold]);lastLevel=st.level;}
+   if(st.state==='intermission'){g.elements.get('modalBtn').click();continue;}
+   if(st.state==='lost'||st.state==='won')break;
+   if(steps%8===0){
+     const info=g.harness.towerInfo(),builds=plans[st.level];
+     if(info.length<builds.length){
+       const [c,r,type]=builds[info.length];
+       if(st.gold>=costs[type])g.place(c,r,type);
+     } else {
+       for(const tower of info.filter(x=>x.level<3)){
+         const cost=45+tower.level*25+(tower.type==='cannon'?20:tower.type==='wind'?8:0);
+         if(g.state().gold>=cost){
+           g.elements.get('game').events.click({clientX:(tower.c+.5)*64,clientY:(tower.r+.5)*64});
+           g.elements.get('upgradeBtn').click();break;
+         }
+       }
+     }
+   }
+   if(g.state().state==='ready')g.elements.get('waveBtn').click();
+   g.tick();
+ }
+ console.log('Full campaign player-input strategy',JSON.stringify({result:g.state(),reached,steps}));
+ assert.equal(g.state().state,'won','At least one complete input-only strategy must win the campaign');
+ assert.equal(g.state().wave,25);
+ assert.ok(g.state().life>=1);
+ assert.deepEqual(reached.map(x=>x[0]),[1,2,3,4,5]);
+});
