@@ -61,7 +61,8 @@ function advanceLevel(){
     localWave()!==WAVES||spawnLeft!==0||enemies.length!==0)return false;
  const savings=gold,previousLife=life;
  level++;selectMap(level);gold=stageBudget(level,savings);
- life=Math.min(12,life+(level>=4?5:3));towers=[];selectedTower=null;enemies=[];bullets=[];fx=[];hover=null;spawnLeft=0;
+ // The final stand starts with substantial fortification support; the final wave remains lethal.
+ life=Math.min(12,life+(level===5?9:level===4?5:3));towers=[];selectedTower=null;enemies=[];bullets=[];fx=[];hover=null;spawnLeft=0;
  state='intermission';saveCheckpoint();updateUI();
  showOverlay('🛡️','المستوى '+level+' — '+LEVEL_NAMES[level-1],
  'خريطة جديدة وطريق أصعب، والأبراج القديمة لا تنتقل. الميزانية '+gold+' ذهب (تتضمن مكافأة ادخار محدودة)، وصحة الواحة '+life+' بعد استعادة '+(life-previousLife)+' نقاط. الحد الأقصى '+towerLimit()+' أبراج. اختر مواقع البناء بعناية.','الاستعداد للمستوى '+level);
