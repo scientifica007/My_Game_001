@@ -31,8 +31,8 @@ const params={W:768,H:512,C:64,COLS:12,ROWS:8,
   center:(c,r)=>({x:(c+.5)*64,y:(r+.5)*64})};
 
 test('each map has a distinct high-contrast road palette',()=>{
-  assert.equal(ROAD_THEMES.length,3);
-  const sand=['#d9c095','#ceaf8c','#bba5a1'];
+  assert.equal(ROAD_THEMES.length,5);
+  const sand=['#d9c095','#ceaf8c','#bba5a1','#c5a98c','#a4a3ae'];
   const rimColors=new Set();
   ROAD_THEMES.forEach((palette,i)=>{
     assert.ok(contrast(palette.frame,sand[i])>=1.5,
@@ -42,11 +42,11 @@ test('each map has a distinct high-contrast road palette',()=>{
     assert.notEqual(palette.outline,palette.shadow);
     rimColors.add(palette.frame);
   });
-  assert.equal(rimColors.size,3);
+  assert.equal(rimColors.size,5);
 });
 
 test('all maps paint conspicuous rims, outlined road tiles, and a center guide',()=>{
-  for(let stage=1;stage<=3;stage++){
+  for(let stage=1;stage<=5;stage++){
     const {ctx,fills,strokes}=fakeCanvas();
     const land=createLandscape({ctx,...params});
     const before=JSON.stringify(scene(stage));
