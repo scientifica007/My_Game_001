@@ -4,23 +4,26 @@ import { readFileSync } from 'node:fs';
 import { Script, runInNewContext } from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const scriptTags = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+const script = readFileSync(new URL('../assets/game.js', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../assets/styles.css', import.meta.url), 'utf8');
 
-test('single-file game has a valid HTML document and Arabic layout', () => {
+test('HTML entry point preserves Arabic layout and links local assets', () => {
   assert.match(html, /<!doctype html>/i);
   assert.match(html, /<html\s+lang="ar"\s+dir="rtl">/i);
   assert.match(html, /<canvas\s+id="game"\s+width="768"\s+height="512"/i);
   assert.match(html, /<\/html>/i);
+  assert.match(html, /<link\s+rel="stylesheet"\s+href="\.\/assets\/styles\.css"/i);
+  assert.match(html, /<script\s+src="\.\/assets\/game\.js"\s+defer><\/script>/i);
 });
 
-test('game has exactly one inline JavaScript entry point and parses', () => {
-  assert.equal(scriptTags.length, 1);
-  assert.doesNotMatch(html, /<script\b[^>]*\bsrc\s*=/i);
-  assert.doesNotThrow(() => new Script(scriptTags[0][1], { filename: 'index.html' }));
+test('external JavaScript parses, and responsive CSS is separated', () => {
+  assert.doesNotMatch(html, /<style\b/i);
+  assert.doesNotThrow(() => new Script(script, { filename: 'assets/game.js' }));
+  assert.match(styles, /\.layout\s*\{/);
+  assert.match(styles, /@media/);
 });
 
 test('five-wave game with victory, defeat and replay', () => {
-  const script = scriptTags[0][1];
   assert.match(script, /\bWAVES\s*=\s*5\b/);
   assert.match(script, /function\s+win\s*\(/);
   assert.match(script, /function\s+lose\s*\(/);
@@ -32,20 +35,20 @@ test('core tower actions, input and controls exist', () => {
     assert.ok(html.includes(`id="${id}"`), `Missing control: ${id}`);
   }
   for (const action of ['clickMap','upgrade','sell','startWave','pause']) {
-    assert.match(scriptTags[0][1], new RegExp(`function\\s+${action}\\s*\\(`));
+    assert.match(script, new RegExp(`function\\s+${action}\\s*\\(`));
   }
 });
 
 test('speed toggle and best-score storage are present', () => {
   assert.match(html, /id="speedBtn"/);
-  assert.match(scriptTags[0][1], /oasis-defenders-best-score/);
-  assert.match(scriptTags[0][1], /function\s+frame\s*\(/);
+  assert.match(script, /oasis-defenders-best-score/);
+  assert.match(script, /function\s+frame\s*\(/);
 });
 
-test('no external script, stylesheet, or runtime network calls', () => {
-  assert.doesNotMatch(html, /<link\b[^>]*rel="stylesheet"[^>]*href=/i);
-  assert.doesNotMatch(html, /<script\b[^>]*src=/i);
-  assert.doesNotMatch(scriptTags[0][1], /\bfetch\s*\(|\bXMLHttpRequest\b/);
+test('all runtime assets are local and require no network', () => {
+  assert.doesNotMatch(html, /https?:\/\//);
+  assert.doesNotMatch(script, /\bfetch\s*\(|\bXMLHttpRequest\b/);
+  assert.doesNotMatch(styles, /@import\b|url\s*\(\s*['"]?https?:/i);
 });
 
 test('wind tower is affordable, builds on valid terrain and slows a moving enemy', () => {
@@ -86,7 +89,7 @@ test('wind tower is affordable, builds on valid terrain and slows a moving enemy
     HTMLButtonElement: FakeElement,
     Math,
   };
-  runInNewContext(scriptTags[0][1], sandbox, { timeout: 1000 });
+  runInNewContext(script, sandbox, { timeout: 1000 });
   els.get('modalBtn').click();
   els.get('windBtn').click();
   els.get('game').handlers.click({ clientX: 5.5 * 64, clientY: 4.5 * 64 });
@@ -107,7 +110,6 @@ test('wind tower is affordable, builds on valid terrain and slows a moving enemy
 
 test('wind tower supports upgrades, selling and keyboard selection', () => {
   assert.match(html, /id="windBtn"/);
-  const script = scriptTags[0][1];
   assert.match(script, /else if\(e\.key==='3'\)choose\('wind'\)/);
   assert.match(script, /function\s+upgradeCost/);
   assert.match(script, /slowStrength/);
