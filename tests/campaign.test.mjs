@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { Script, runInNewContext } from 'node:vm';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const original=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)][0][1];
+const original=readFileSync(new URL('../assets/game.js',import.meta.url),'utf8');
 
 function boot() {
   class FakeElement {
