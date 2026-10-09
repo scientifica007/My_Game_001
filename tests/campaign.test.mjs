@@ -156,5 +156,24 @@ test('balance probe: stage 3 needs good placement and upgrades',()=>{
   }
   const result=g.state();
   console.log('Stage 3 strategy probe',JSON.stringify({state:result.state,localWave:result.localWave,life:result.life,kills:result.kills,gold:result.gold,towers:g.harness.towerInfo(),steps,records:waveRecords}));
-  assert.ok(result.wave>=11);
+  assert.equal(result.state,'won','A well-spaced and upgraded defense must still be able to win stage 3');
+  assert.ok(result.life>=1&&result.life<=6,'Stage 3 should remain a close contest under the reference strategy');
+});
+
+test('poorly distributed towers fail even when enough gold was spent',()=>{
+  const g=boot();
+  g.harness.readyAt(3);
+  g.harness.funds(420);
+  for(let c=0;c<6;c++)g.place(c,7,'arrow');
+  assert.equal(g.state().numberOfTowers,6);
+  assert.equal(g.state().gold,90);
+  g.elements.get('waveBtn').click();
+  for(let i=0;i<1700;i++){
+    g.tick();
+    const state=g.state();
+    if(state.state==='ready'&&state.wave<13)g.elements.get('waveBtn').click();
+    if(state.state==='lost')break;
+  }
+  assert.equal(g.state().state,'lost','Bad positioning should not succeed solely by spending resources');
+  assert.ok(g.state().wave<=12);
 });
