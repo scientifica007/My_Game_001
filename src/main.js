@@ -93,11 +93,24 @@ const world={
 };
 const {msg,showOverlay,updateUI}=createUI({world,$,cfg,LEVELS,WAVES,TOTAL_WAVES,LEVEL_NAMES,active,localWave,towerLimit,upgradeCost});
 const {simulate}=createSimulation({world,C,WAVES,TOTAL_WAVES,center,cfg,localWave,beep,poof,win,lose,advanceLevel,updateUI,msg});
-const {render}=createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active,valid,towerAt});
+const {render,setQuality}=createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active,valid,towerAt});
+let quality='rich';
+try{quality=localStorage.getItem('oasis-defenders-visual-quality')==='lite'?'lite':'rich'}catch{}
+setQuality(quality);
+function syncQualityButton(){
+ $('qualityBtn').textContent=quality==='rich'?'✨ مؤثرات غنيّة':'🌿 مؤثرات اقتصادية';
+ $('qualityBtn').setAttribute('aria-pressed',String(quality==='rich'));
+}
+syncQualityButton();
 
 canvas.addEventListener('pointermove',e=>{hover=coord(e)});canvas.addEventListener('pointerleave',()=>{hover=null});canvas.addEventListener('click',clickMap);
 $('arrowBtn').addEventListener('click',()=>choose('arrow'));$('cannonBtn').addEventListener('click',()=>choose('cannon'));$('windBtn').addEventListener('click',()=>choose('wind'));$('waveBtn').addEventListener('click',startWave);$('pauseBtn').addEventListener('click',pause);$('upgradeBtn').addEventListener('click',upgrade);$('sellBtn').addEventListener('click',sell);$('modalBtn').addEventListener('click',()=>{if(state==='intermission'){state='ready';$('overlay').classList.add('hidden');updateUI()}else reset(true)});
-$('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;updateUI();msg('سرعة اللعب: ×'+speed)});$('resetBtn').addEventListener('click',()=>{reset(true);msg('بدأت لعبة جديدة')});$('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 الصوت':'🔇 صامت';if(sound)beep(530,.09)});
+$('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;updateUI();msg('سرعة اللعب: ×'+speed)});
+$('qualityBtn').addEventListener('click',()=>{
+ quality=quality==='rich'?'lite':'rich';setQuality(quality);syncQualityButton();
+ try{localStorage.setItem('oasis-defenders-visual-quality',quality)}catch{}
+ msg(quality==='rich'?'تم تفعيل مؤثرات الإضاءة والغلاف الجوي':'تم تفعيل المؤثرات الاقتصادية لتخفيف الحمل');
+});$('resetBtn').addEventListener('click',()=>{reset(true);msg('بدأت لعبة جديدة')});$('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 الصوت':'🔇 صامت';if(sound)beep(530,.09)});
 document.addEventListener('keydown',e=>{if(e.target instanceof HTMLButtonElement&&e.code==='Space')return;if(e.key==='1')choose('arrow');else if(e.key==='2')choose('cannon');else if(e.key==='3')choose('wind');else if(e.key.toLowerCase()==='p')pause();else if(e.key.toLowerCase()==='f'){$('speedBtn').click()}else if(e.code==='Space'){e.preventDefault();startWave()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='battle'){state='paused';updateUI()}});
 updateUI();requestAnimationFrame(frame);
