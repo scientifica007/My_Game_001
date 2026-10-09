@@ -43,13 +43,13 @@ export function createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active
         ctx.strokeStyle='rgba(211,255,226,.54)';ctx.lineWidth=1.6;
         ctx.setLineDash([8,6]);ctx.stroke();ctx.restore();
       }
-      drawTowerSprite(ctx,tower,x,y,visualTime,reducedMotion);
+      drawTowerSprite(ctx,tower,x,y,visualTime,reducedMotion||quality==='lite');
     }
   }
   function drawEnemies(){
     // On-screen ordering is stable: units at larger Y appear in front.
     const sorted=world.enemies.slice().sort((a,b)=>a.y-b.y);
-    for(const enemy of sorted)drawEnemySprite(ctx,enemy,visualTime,reducedMotion);
+    for(const enemy of sorted)drawEnemySprite(ctx,enemy,visualTime,reducedMotion||quality==='lite');
   }
   function drawBullets(){
     for(const bullet of world.bullets){
@@ -61,7 +61,7 @@ export function createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active
       ctx.lineWidth=arrow?2.2:wind?2.8:4.5;
       ctx.beginPath();ctx.moveTo(prevX,prevY);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();
       ctx.globalAlpha=1;ctx.shadowColor=arrow?'#ffdf7e':wind?'#6de8ff':'#ff8349';
-      ctx.shadowBlur=13;
+      ctx.shadowBlur=quality==='rich'?13:0;
       ctx.fillStyle=arrow?'#fff5c8':wind?'#c4faff':'#ffa86c';
       ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fill();
       if(!arrow&&!wind){
@@ -97,7 +97,8 @@ export function createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active
   function render(dt=0){
     if(Number.isFinite(dt))visualTime+=Math.max(0,dt);
     ctx.clearRect(0,0,W,H);
-    landscape.draw(world,visualTime,reducedMotion);
+    const economical=reducedMotion||quality==='lite';
+    landscape.draw(world,visualTime,economical);
     ambience.background(world,visualTime,{rich:quality==='rich',reducedMotion});
     drawHover();
     drawTowers();
