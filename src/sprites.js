@@ -44,6 +44,13 @@ export function drawTowerSprite(ctx,t,x,y,time=0,reducedMotion=false){
     ctx.restore();
     ctx.strokeStyle='rgba(175,236,241,.45)';ctx.lineWidth=2;ctx.beginPath();
     ctx.arc(0,0,18,-Math.PI*.8,Math.PI*.45);ctx.stroke();
+    if(!reducedMotion){
+      for(let j=0;j<2;j++){
+        ctx.strokeStyle='rgba(195,244,252,'+(.18+j*.09)+')';
+        ctx.lineWidth=1.6;ctx.beginPath();
+        ctx.arc(0,0,20+j*5,phase*.7+j*2,phase*.7+j*2+1.2);ctx.stroke();
+      }
+    }
   }else{
     disc(ctx,0,0,13,t.type==='arrow'?'#c9dba5':'#efc88e');
     ctx.save();ctx.rotate(t.angle+(reducedMotion?0:Math.sin(phase)*.018));
@@ -89,6 +96,29 @@ export function drawEnemySprite(ctx,e,time=0,reducedMotion=false){
   const hit=Math.max(0,e.hit||0);
   const x=e.x,y=e.y+bounce;
   oval(ctx,x+2,y+e.radius*.69,e.radius*1.12,6.3,'rgba(53,42,34,.30)');
+  // Direction-aware motion trails are decorative; actual speed stays unchanged.
+  if(e.kind==='fast'&&!reducedMotion){
+    ctx.save();ctx.translate(x,y);ctx.rotate(e.facing??0);ctx.lineCap='round';
+    for(let j=0;j<3;j++){
+      ctx.strokeStyle='rgba(216,190,251,'+(.11-j*.02)+')';
+      ctx.lineWidth=2.4-j*.4;ctx.beginPath();
+      ctx.moveTo(-e.radius-4-j*4,-5+j*5);
+      ctx.lineTo(-e.radius-13-j*6-Math.sin(phase)*2,-6+j*5);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if(e.kind==='boss'){
+    const pulse=reducedMotion?0:Math.sin(time*2.3+(e.seed??0))*2.4;
+    ctx.strokeStyle='rgba(255,210,146,.24)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x,y,e.radius+8+pulse,0,TAU);ctx.stroke();
+    if(!reducedMotion){
+      for(let i=0;i<4;i++){
+        const a=i*TAU/4+time*.36;
+        oval(ctx,x+Math.cos(a)*(e.radius+8),y+Math.sin(a)*(e.radius+8),2,1.5,
+          'rgba(255,222,168,.27)');
+      }
+    }
+  }
   ctx.save();ctx.translate(x,y);ctx.rotate(Math.cos(e.facing??0)*.09);ctx.scale(scale*(1+hit*.04),scale*(1-hit*.035));
   // Feet animate independently of the round body.
   const legs=e.kind==='fast'?6:4;
