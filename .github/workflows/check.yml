@@ -20,8 +20,12 @@ jobs:
         run: npm test
       - name: Build production game
         run: npm run build
-      - name: Verify built assets
-        run: |
-          test -f dist/index.html
-          test -d dist/assets
-          grep -q 'assets/' dist/index.html
+      - name: Verify release portability and size
+        run: npm run verify:release
+      - name: Attach publishable static build
+        uses: actions/upload-artifact@v4
+        with:
+          name: oasis-defenders-static-site
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
