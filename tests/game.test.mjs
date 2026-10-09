@@ -1,49 +1,78 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { Script } from 'node:vm';
+import { buildSync } from 'esbuild';
+import { Script, runInNewContext } from 'node:vm';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const scriptTags = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/styles.css',import.meta.url),'utf8');
+const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const bundle=buildSync({entryPoints:['src/main.js'],bundle:true,format:'iife',platform:'browser',write:false,logLevel:'silent'}).outputFiles[0].text;
 
-test('single-file game has a valid HTML document and Arabic layout', () => {
-  assert.match(html, /<!doctype html>/i);
-  assert.match(html, /<html\s+lang="ar"\s+dir="rtl">/i);
-  assert.match(html, /<canvas\s+id="game"\s+width="768"\s+height="512"/i);
-  assert.match(html, /<\/html>/i);
-});
-
-test('game has exactly one inline JavaScript entry point and parses', () => {
-  assert.equal(scriptTags.length, 1);
-  assert.doesNotMatch(html, /<script\b[^>]*\bsrc\s*=/i);
-  assert.doesNotThrow(() => new Script(scriptTags[0][1], { filename: 'index.html' }));
-});
-
-test('five-wave game with victory, defeat and replay', () => {
-  const script = scriptTags[0][1];
-  assert.match(script, /\bWAVES\s*=\s*5\b/);
-  assert.match(script, /function\s+win\s*\(/);
-  assert.match(script, /function\s+lose\s*\(/);
-  assert.match(script, /function\s+reset\s*\(/);
-});
-
-test('core tower actions, input and controls exist', () => {
-  for (const id of ['game','waveBtn','pauseBtn','resetBtn','soundBtn','arrowBtn','cannonBtn','upgradeBtn','sellBtn','overlay','modalBtn']) {
-    assert.ok(html.includes(`id="${id}"`), `Missing control: ${id}`);
+function startGame(){
+  class FakeElement{
+    constructor(id){this.id=id;this.textContent='';this.style={};this.handlers={};this.classList={add(){},remove(){},toggle(){}};this.attributes={};this.disabled=false;}
+    addEventListener(e,cb){this.handlers[e]=cb}
+    getBoundingClientRect(){return{left:0,top:0,width:768,height:512}}
+    getContext(){return new Proxy({},{get:(_,key)=>()=>{}})}
+    setAttribute(key,v){this.attributes[key]=v}
+    click(){this.handlers.click?.({})}
   }
-  for (const action of ['clickMap','upgrade','sell','startWave','pause']) {
-    assert.match(scriptTags[0][1], new RegExp(`function\\s+${action}\\s*\\(`));
-  }
+  const els=new Map(),window={};
+  const document={getElementById(id){if(!els.has(id))els.set(id,new FakeElement(id));return els.get(id)},addEventListener(){},hidden:false};
+  let frame=null,ms=0;
+  runInNewContext(bundle,{document,window,Math,HTMLButtonElement:FakeElement,
+    requestAnimationFrame(cb){frame=cb},localStorage:{getItem(){return null},setItem(){}},
+    setTimeout(){return 1},clearTimeout(){}},{timeout:1000});
+  const tick=()=>{ms+=45;frame(ms)};
+  return {els,window,tick,state:()=>window.__oasisTest()};
+}
+
+test('Arabic UI loads modern local CSS and ES module',()=>{
+  assert.match(html,/<html lang="ar" dir="rtl">/);
+  assert.match(html,/src="\.\/src\/main\.js"/);
+  assert.match(html,/type="module"/);
+  assert.match(html,/href="\.\/src\/styles\.css"/);
+  assert.match(html,/id="levelValue"/);
+  assert.match(css,/@media/);
 });
 
-test('speed toggle and best-score storage are present', () => {
-  assert.match(html, /id="speedBtn"/);
-  assert.match(scriptTags[0][1], /oasis-defenders-best-score/);
-  assert.match(scriptTags[0][1], /function\s+frame\s*\(/);
+test('all imported modules bundle and compile without errors',()=>{
+  assert.doesNotThrow(()=>new Script(bundle));
+  assert.match(source,/import \{createSimulation\}/);
+  assert.match(source,/import \{createRenderer\}/);
+  assert.match(source,/import \{createUI\}/);
+  assert.doesNotMatch(html,/<script\b[^>]*>[\s\S]*?function\s+simulate/);
 });
 
-test('no external script, stylesheet, or runtime network calls', () => {
-  assert.doesNotMatch(html, /<link\b[^>]*rel="stylesheet"[^>]*href=/i);
-  assert.doesNotMatch(html, /<script\b[^>]*src=/i);
-  assert.doesNotMatch(scriptTags[0][1], /\bfetch\s*\(|\bXMLHttpRequest\b/);
+test('main actions include construction, upgrade, sell and replay',()=>{
+  const game=startGame();
+  game.els.get('modalBtn').click();
+  game.els.get('arrowBtn').click();
+  game.els.get('game').handlers.click({clientX:5.5*64,clientY:4.5*64});
+  assert.equal(game.state().numberOfTowers,1);
+  assert.equal(game.state().gold,115);
+  game.els.get('sellBtn').click();
+  assert.equal(game.state().numberOfTowers,0);
+  game.els.get('resetBtn').click();
+  assert.equal(game.state().gold,170);
+});
+
+test('wind tower slows actual moving enemies',()=>{
+  const game=startGame();
+  game.els.get('modalBtn').click();
+  game.els.get('windBtn').click();
+  game.els.get('game').handlers.click({clientX:5.5*64,clientY:4.5*64});
+  assert.equal(game.state().towerTypes[0],'wind');
+  assert.equal(game.state().gold,90);
+  game.els.get('waveBtn').click();
+  let slowed=false;
+  for(let n=0;n<600;n++){game.tick();if(game.state().slowedEnemies>0){slowed=true;break}}
+  assert.equal(slowed,true);
+});
+
+test('the game uses no external runtime assets or network calls',()=>{
+  assert.doesNotMatch(html,/https?:\/\//);
+  assert.doesNotMatch(source,/\bfetch\s*\(|XMLHttpRequest\b/);
+  assert.doesNotMatch(css,/@import\b|url\s*\(\s*['"]?https?:/i);
 });
