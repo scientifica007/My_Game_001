@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Script, runInNewContext } from 'node:vm';
+import { buildSync } from 'esbuild';
+import { resolve } from 'node:path';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const original=readFileSync(new URL('../assets/game.js',import.meta.url),'utf8');
+const original=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const configSource=readFileSync(new URL('../src/config.js',import.meta.url),'utf8');
 
 function boot() {
   class FakeElement {
@@ -26,11 +29,12 @@ function boot() {
     localStorage:{getItem(){return null;},setItem(){}},
     setTimeout(){return 1;},clearTimeout(){}};
   // Only accelerate the test renderer; keep actual gameplay simulation intact.
-  let script=original.replace("render(state==='paused'?0:dt*speed);","");
-  const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];updateUI()},advanceLevel(){advanceLevel()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])},towerInfo(){return towers.map(t=>({c:t.c,r:t.r,type:t.type,level:t.level}))}};})();";
+  let script="import {enemyBlueprint} from './levels.js';\n"+original.replace("render(state==='paused'?0:dt*speed);","");
+  const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];updateUI()},attemptAdvance(){return advanceLevel()},completeLevel(){state='battle';spawnLeft=0;enemies=[];return advanceLevel()},fatalLeakAtFinalWave(stage){level=stage;wave=stage*WAVES;selectMap(stage);life=1;state='battle';spawnLeft=0;spawned=1;spawnMax=1;towers=[];bullets=[];enemies=[{kind:'normal',hp:10,maxHp:10,damage:1,reward:10,dead:false,progress:PATH.length-1-.005,speed:1,slowTime:0,slowStrength:0,x:0,y:0}];updateUI()},emptyDeadFinalWave(stage){level=stage;wave=stage*WAVES;selectMap(stage);life=0;state='battle';spawnLeft=0;enemies=[];bullets=[];updateUI()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])},towerInfo(){return towers.map(t=>({c:t.c,r:t.r,type:t.type,level:t.level}))}};})();"
   script=script.replace(/\}\)\(\);\s*$/,injection);
-  assert.doesNotThrow(()=>new Script(script));
-  runInNewContext(script,context,{timeout:1000});
+  const bundle=buildSync({stdin:{contents:script,resolveDir:resolve('src'),sourcefile:'src/main.js',loader:'js'},bundle:true,format:'iife',platform:'browser',write:false,logLevel:'silent'}).outputFiles[0].text;
+  assert.doesNotThrow(()=>new Script(bundle));
+  runInNewContext(bundle,context,{timeout:1000});
   function tick(count=1){for(let i=0;i<count;i++){ms+=45;frame(ms);}}
   function place(c,r,type='arrow'){elements.get(type+'Btn').click();elements.get('game').events.click({clientX:(c+.5)*64,clientY:(r+.5)*64});}
   elements.get('modalBtn').click();
@@ -40,7 +44,7 @@ function boot() {
 test('campaign displays three levels and fifteen waves',()=>{
   assert.match(html,/id="levelValue"/);
   assert.match(html,/3 مستويات · 15 موجة/);
-  assert.match(original,/LEVELS=3,TOTAL_WAVES=WAVES\*LEVELS/);
+  assert.match(configSource,/LEVELS=3,TOTAL_WAVES=WAVES\*LEVELS/);
   const g=boot();
   assert.equal(g.state().level,1);
   assert.equal(g.state().localWave,0);
@@ -91,7 +95,7 @@ test('level transition changes map, resets placement and caps carried currency',
   g.harness.setLife(6);
   g.harness.funds(9000);
   g.harness.setWave(5);
-  g.harness.advanceLevel();
+  assert.equal(g.harness.completeLevel(),true);
   assert.equal(g.state().state,'intermission');
   assert.equal(g.state().level,2);
   assert.equal(g.state().localWave,0);
@@ -176,4 +180,58 @@ test('poorly distributed towers fail even when enough gold was spent',()=>{
   }
   assert.equal(g.state().state,'lost','Bad positioning should not succeed solely by spending resources');
   assert.ok(g.state().wave<=12);
+});
+
+
+test('fatal leak on the last wave of level 2 never unlocks level 3',()=>{
+  const g=boot();
+  g.harness.fatalLeakAtFinalWave(2);
+  assert.equal(g.state().level,2);
+  assert.equal(g.state().wave,10);
+  g.tick();
+  const lost=g.state();
+  assert.equal(lost.state,'lost');
+  assert.equal(lost.life,0);
+  assert.equal(lost.level,2,'The player must remain at the failed level');
+  assert.equal(lost.wave,10);
+  assert.equal(g.elements.get('modalBtn').textContent,'حاول مجددًا');
+  assert.equal(g.harness.attemptAdvance(),false,'A direct unlock attempt must be rejected');
+  g.tick(30);
+  assert.equal(g.state().state,'lost');
+  assert.equal(g.state().level,2);
+  g.elements.get('modalBtn').click();
+  assert.equal(g.state().level,1,'Retry restarts the campaign, not the following level');
+  assert.equal(g.state().state,'ready');
+  assert.equal(g.state().life,12);
+});
+
+test('zero-health and empty battlefield must resolve as defeat, not stage completion',()=>{
+  for(const stage of [1,2]){
+    const g=boot();
+    g.harness.emptyDeadFinalWave(stage);
+    assert.equal(g.harness.attemptAdvance(),false);
+    g.tick();
+    assert.equal(g.state().state,'lost');
+    assert.equal(g.state().level,stage);
+    assert.equal(g.state().life,0);
+  }
+});
+
+test('surviving the final wave of level 2 unlocks level 3 legitimately',()=>{
+  const g=boot();
+  g.harness.readyAt(2);
+  g.harness.setWave(10);
+  g.harness.setLife(3);
+  assert.equal(g.harness.attemptAdvance(),false,'Preparation does not unlock a level');
+  assert.equal(g.state().level,2);
+  assert.equal(g.harness.completeLevel(),true);
+  assert.equal(g.state().state,'intermission');
+  assert.equal(g.state().level,3);
+  assert.equal(g.state().life,6);
+  assert.equal(g.elements.get('modalBtn').textContent,'الاستعداد للمستوى 3');
+  g.elements.get('modalBtn').click();
+  assert.equal(g.state().state,'ready');
+  assert.equal(g.state().level,3);
+  g.elements.get('waveBtn').click();
+  assert.equal(g.state().wave,11);
 });

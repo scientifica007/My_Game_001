@@ -58,3 +58,54 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation;cursor:cro
 @media (max-width:920px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:last-child{grid-column:1/-1}}
 @media (max-width:620px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.page{padding:13px 10px 24px}.top{margin-bottom:12px}h1{font-size:21px}.tag{font-size:10px}.emblem{height:41px;width:41px}.stats{gap:6px}.stat{padding:8px}.statValue{font-size:17px}.statLabel{font-size:10px}.gameframe{padding:5px;border-radius:12px}.canvasWrap{border-radius:7px}.side{display:flex}.panel{padding:12px}.modal h2{font-size:24px}.modal p{font-size:12px}.modalIcon{font-size:35px}.topRight .pill{display:none}}
 @media (prefers-reduced-motion: reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* Living Oasis visual refresh — no external textures or fonts. */
+body{
+  background:
+    radial-gradient(ellipse at 22% -15%,rgba(105,161,154,.23),transparent 47%),
+    radial-gradient(ellipse at 95% 80%,rgba(120,99,73,.19),transparent 48%),
+    linear-gradient(156deg,#0d2030 0%,#15293b 48%,#102332 100%);
+}
+.gameframe{
+  background:linear-gradient(140deg,#546774 0%,#294655 37%,#172d3b 100%);
+  border-color:rgba(184,215,203,.32);
+  box-shadow:0 24px 60px rgba(1,12,24,.39),inset 0 1px rgba(243,249,238,.23);
+}
+.canvasWrap{
+  background:#c3a578;
+  box-shadow:inset 0 0 0 2px rgba(35,57,56,.24);
+  isolation:isolate;
+}
+.canvasWrap::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  border-radius:inherit;
+  box-shadow:inset 0 0 32px rgba(37,37,34,.21),inset 0 1px 0 rgba(255,250,224,.17);
+}
+canvas{position:relative;z-index:0}
+.panel{
+  border-color:rgba(112,153,160,.35);
+  background:linear-gradient(147deg,rgba(36,62,76,.98),rgba(21,40,57,.98));
+  box-shadow:0 8px 23px rgba(0,10,21,.17),inset 0 1px rgba(224,245,230,.07);
+}
+.stat{
+  background:linear-gradient(160deg,rgba(31,56,69,.98),rgba(21,39,56,.98));
+  border-color:rgba(108,151,158,.34);
+  box-shadow:inset 0 1px rgba(240,255,241,.055);
+}
+.tower{
+  transition:border-color .18s,box-shadow .18s,background .18s,transform .18s;
+}
+.tower:hover:not(:disabled){transform:translateY(-1px);border-color:#86b6a6}
+.tower.selected{
+  background:linear-gradient(120deg,#304b49,#283f4e);
+  border-color:#f1ca8b;
+  box-shadow:inset 0 0 0 1px rgba(255,215,155,.30),0 0 18px rgba(230,195,122,.08);
+}
+.towerIcon{background:radial-gradient(circle at 35% 22%,#426a70,#244251)}
+.btn.primary{box-shadow:0 5px 16px rgba(219,167,86,.14),inset 0 1px rgba(255,248,215,.33)}
+.modal{filter:drop-shadow(0 6px 17px rgba(0,0,0,.28))}
+.progress .fill{box-shadow:0 0 8px rgba(117,211,174,.35)}
+@media (prefers-reduced-motion:reduce){
+  .tower{transition:none}
+  .tower:hover:not(:disabled){transform:none}
+}

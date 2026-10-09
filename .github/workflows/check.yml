@@ -14,5 +14,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run dependency-free tests
-        run: node --test tests/*.test.mjs
+      - name: Install Vite and test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run modular gameplay and campaign tests
+        run: npm test
+      - name: Build production game
+        run: npm run build
+      - name: Verify built assets
+        run: |
+          test -f dist/index.html
+          test -d dist/assets
+          grep -q 'assets/' dist/index.html
