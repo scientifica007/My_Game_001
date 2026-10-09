@@ -76,3 +76,17 @@ test('the game uses no external runtime assets or network calls',()=>{
   assert.doesNotMatch(source,/\bfetch\s*\(|XMLHttpRequest\b/);
   assert.doesNotMatch(css,/@import\b|url\s*\(\s*['"]?https?:/i);
 });
+
+test('visual quality can be toggled without changing campaign state',()=>{
+  const game=startGame();
+  game.els.get('modalBtn').click();
+  const initial=JSON.stringify(game.state());
+  assert.equal(game.els.get('qualityBtn').attributes['aria-pressed'],'true');
+  game.els.get('qualityBtn').click();
+  assert.equal(game.els.get('qualityBtn').attributes['aria-pressed'],'false');
+  assert.match(game.els.get('qualityBtn').textContent,/اقتصادية/);
+  assert.equal(JSON.stringify(game.state()),initial,'economical graphics must never change the game rules');
+  game.els.get('qualityBtn').click();
+  assert.equal(game.els.get('qualityBtn').attributes['aria-pressed'],'true');
+  assert.equal(JSON.stringify(game.state()),initial);
+});

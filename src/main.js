@@ -1,4 +1,4 @@
-import {W,H,C,COLS,ROWS,WAVES,LEVELS,TOTAL_WAVES,PATHS,LEVEL_NAMES,cfg} from './config.js';
+import {W,H,C,COLS,ROWS,WAVES,LEVELS,TOTAL_WAVES,PATHS,LEVEL_NAMES,TOWER_LIMITS,cfg} from './config.js';
 import {upgradeCost,sellRefund,stageBudget} from './economy.js';
 import {createSimulation} from './simulation.js';
 import {createRenderer} from './renderer.js';
@@ -8,17 +8,36 @@ import {createUI} from './ui.js';
 let PATH=PATHS[0],pathSet=new Set(PATH.map(p=>p.join(',')));
 function selectMap(levelNumber){PATH=PATHS[levelNumber-1];pathSet=new Set(PATH.map(p=>p.join(',')))}
 function localWave(){return wave-(level-1)*WAVES}
-function towerLimit(){return [8,7,6][level-1]}
+function towerLimit(){return TOWER_LIMITS[level-1]}
 const $=id=>document.getElementById(id),canvas=$('game'),ctx=canvas.getContext('2d');
 let gold=170,life=12,wave=0,level=1,kills=0,selected='arrow',selectedTower=null,towers=[],enemies=[],bullets=[],fx=[];
 let state='intro',hover=null,spawnLeft=0,spawnIndex=0,spawnClock=0,spawnMax=0,spawned=0,last=0,toastTimeout=0,sound=true,audioCtx=null,frames=0,winCount=0,speed=1,bestScore=0;
+// A stage-entry snapshot is captured only when the player legitimately reaches it.
+// It is not updated on spending, taking damage or defeat; retry cannot grant free resources.
+let checkpoint={level:1,wave:0,life:12,gold:170,kills:0};
+function saveCheckpoint(){checkpoint={level,wave:(level-1)*WAVES,life,gold,kills};}
+
 try{winCount=+(localStorage.getItem('oasis-defenders-wins')||0);bestScore=+(localStorage.getItem('oasis-defenders-best-score')||0)}catch(e){}
 const center=(c,r)=>({x:(c+.5)*C,y:(r+.5)*C});
 const rand=(x,y)=>{const v=Math.sin(x*127.1+y*311.7)*43758.5453;return v-Math.floor(v)};
 const active=()=>state==='ready'||state==='battle'||state==='paused';
 function beep(freq=440,duration=.06,shape='sine',volume=.035){if(!sound)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=shape;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 
-function reset(start=true){speed=1;gold=170;life=12;wave=0;level=1;selectMap(1);kills=0;selected='arrow';selectedTower=null;towers=[];enemies=[];bullets=[];fx=[];spawnLeft=0;spawnIndex=0;spawnClock=0;spawned=0;spawnMax=0;state=start?'ready':'intro';$('overlay').classList.toggle('hidden',start);choose('arrow');updateUI()}
+function reset(start=true){
+ speed=1;gold=170;life=12;wave=0;level=1;selectMap(1);kills=0;
+ selected='arrow';selectedTower=null;towers=[];enemies=[];bullets=[];fx=[];hover=null;
+ spawnLeft=0;spawnIndex=0;spawnClock=0;spawned=0;spawnMax=0;
+ state=start?'ready':'intro';saveCheckpoint();
+ $('overlay').classList.toggle('hidden',start);choose('arrow');updateUI();
+}
+function retryLevel(){
+ if(state!=='lost')return false;
+ level=checkpoint.level;wave=checkpoint.wave;gold=checkpoint.gold;life=checkpoint.life;kills=checkpoint.kills;
+ selectMap(level);selected='arrow';selectedTower=null;towers=[];enemies=[];bullets=[];fx=[];hover=null;
+ spawnLeft=0;spawnIndex=0;spawnClock=0;spawned=0;spawnMax=0;speed=1;
+ state='ready';$('overlay').classList.add('hidden');choose('arrow');updateUI();
+ return true;
+}
 
 function choose(type){if(!active()||!cfg[type])return;selected=type;selectedTower=null;for(const [id,kind] of [['arrowBtn','arrow'],['cannonBtn','cannon'],['windBtn','wind']]){$(id).classList.toggle('selected',type===kind);$(id).setAttribute('aria-pressed',String(type===kind))}updateUI()}
 function valid(c,r){return c>=0&&c<COLS&&r>=0&&r<ROWS&&!pathSet.has(c+','+r)&&!towers.some(t=>t.c===c&&t.r===r)}
@@ -42,14 +61,15 @@ function advanceLevel(){
     localWave()!==WAVES||spawnLeft!==0||enemies.length!==0)return false;
  const savings=gold,previousLife=life;
  level++;selectMap(level);gold=stageBudget(level,savings);
- life=Math.min(12,life+3);towers=[];selectedTower=null;enemies=[];bullets=[];fx=[];hover=null;spawnLeft=0;
- state='intermission';updateUI();
+ // The final stand starts with substantial fortification support; the final wave remains lethal.
+ life=Math.min(12,life+(level===5?9:level===4?5:3));towers=[];selectedTower=null;enemies=[];bullets=[];fx=[];hover=null;spawnLeft=0;
+ state='intermission';saveCheckpoint();updateUI();
  showOverlay('🛡️','المستوى '+level+' — '+LEVEL_NAMES[level-1],
  'خريطة جديدة وطريق أصعب، والأبراج القديمة لا تنتقل. الميزانية '+gold+' ذهب (تتضمن مكافأة ادخار محدودة)، وصحة الواحة '+life+' بعد استعادة '+(life-previousLife)+' نقاط. الحد الأقصى '+towerLimit()+' أبراج. اختر مواقع البناء بعناية.','الاستعداد للمستوى '+level);
  return true;
 }
-function win(){if(state!=='battle'||life<=0||wave!==TOTAL_WAVES||spawnLeft!==0||enemies.length!==0)return false;state='won';const score=kills*10+life*25+gold;winCount++;bestScore=Math.max(bestScore,score);try{localStorage.setItem('oasis-defenders-wins',String(winCount));localStorage.setItem('oasis-defenders-best-score',String(bestScore))}catch(e){}showOverlay('🏆','انتصرت!','نجحت في حماية الواحة عبر المستويات الثلاثة والموجات الخمس عشرة. نتيجتك: '+score+' نقطة. أفضل نتيجة: '+bestScore+' نقطة. الانتصارات: '+winCount+'.','العب مرة أخرى');beep(700,.2);setTimeout(()=>beep(900,.28),210);updateUI();return true}
-function lose(){if(state==='lost'||state==='won')return false;state='lost';enemies=[];bullets=[];showOverlay('🌪️','سقطت الواحة','وصل الأعداء إلى الواحة قبل انتهاء الدفاع. بلغت الموجة '+wave+' وقضيت على '+kills+' عدوًا. جرّب توزيع الأبراج قرب انعطافات الطريق.','حاول مجددًا');updateUI();return true}
+function win(){if(state!=='battle'||life<=0||wave!==TOTAL_WAVES||spawnLeft!==0||enemies.length!==0)return false;state='won';const score=kills*10+life*25+gold;winCount++;bestScore=Math.max(bestScore,score);try{localStorage.setItem('oasis-defenders-wins',String(winCount));localStorage.setItem('oasis-defenders-best-score',String(bestScore))}catch(e){}showOverlay('🏆','انتصرت!','نجحت في حماية الواحة عبر '+LEVELS+' مستويات و'+TOTAL_WAVES+' موجة. نتيجتك: '+score+' نقطة. أفضل نتيجة: '+bestScore+' نقطة. الانتصارات: '+winCount+'.','العب مرة أخرى');beep(700,.2);setTimeout(()=>beep(900,.28),210);updateUI();return true}
+function lose(){if(state==='lost'||state==='won')return false;state='lost';enemies=[];bullets=[];showOverlay('🌪️','سقطت الواحة','وصل الأعداء إلى الواحة في المستوى '+level+'. تستطيع إعادة هذا المستوى من بدايته بميزانية وصحة دخوله، أو إعادة الحملة من المستوى الأول.','إعادة المستوى '+level);updateUI();return true}
 
 
 
@@ -93,14 +113,28 @@ const world={
 };
 const {msg,showOverlay,updateUI}=createUI({world,$,cfg,LEVELS,WAVES,TOTAL_WAVES,LEVEL_NAMES,active,localWave,towerLimit,upgradeCost});
 const {simulate}=createSimulation({world,C,WAVES,TOTAL_WAVES,center,cfg,localWave,beep,poof,win,lose,advanceLevel,updateUI,msg});
-const {render}=createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active,valid,towerAt});
+const {render,setQuality}=createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active,valid,towerAt});
+let quality='rich';
+try{quality=localStorage.getItem('oasis-defenders-visual-quality')==='lite'?'lite':'rich'}catch{}
+setQuality(quality);
+function syncQualityButton(){
+ $('qualityBtn').textContent=quality==='rich'?'✨ مؤثرات غنيّة':'🌿 مؤثرات اقتصادية';
+ $('qualityBtn').setAttribute('aria-pressed',String(quality==='rich'));
+}
+syncQualityButton();
 
 canvas.addEventListener('pointermove',e=>{hover=coord(e)});canvas.addEventListener('pointerleave',()=>{hover=null});canvas.addEventListener('click',clickMap);
-$('arrowBtn').addEventListener('click',()=>choose('arrow'));$('cannonBtn').addEventListener('click',()=>choose('cannon'));$('windBtn').addEventListener('click',()=>choose('wind'));$('waveBtn').addEventListener('click',startWave);$('pauseBtn').addEventListener('click',pause);$('upgradeBtn').addEventListener('click',upgrade);$('sellBtn').addEventListener('click',sell);$('modalBtn').addEventListener('click',()=>{if(state==='intermission'){state='ready';$('overlay').classList.add('hidden');updateUI()}else reset(true)});
-$('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;updateUI();msg('سرعة اللعب: ×'+speed)});$('resetBtn').addEventListener('click',()=>{reset(true);msg('بدأت لعبة جديدة')});$('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 الصوت':'🔇 صامت';if(sound)beep(530,.09)});
+$('arrowBtn').addEventListener('click',()=>choose('arrow'));$('cannonBtn').addEventListener('click',()=>choose('cannon'));$('windBtn').addEventListener('click',()=>choose('wind'));$('waveBtn').addEventListener('click',startWave);$('pauseBtn').addEventListener('click',pause);$('upgradeBtn').addEventListener('click',upgrade);$('sellBtn').addEventListener('click',sell);$('modalBtn').addEventListener('click',()=>{if(state==='intermission'){state='ready';$('overlay').classList.add('hidden');updateUI()}else if(state==='lost'){retryLevel()}else reset(true)});
+$('restartCampaignBtn').addEventListener('click',()=>{if(state==='lost')reset(true)});
+$('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;updateUI();msg('سرعة اللعب: ×'+speed)});
+$('qualityBtn').addEventListener('click',()=>{
+ quality=quality==='rich'?'lite':'rich';setQuality(quality);syncQualityButton();
+ try{localStorage.setItem('oasis-defenders-visual-quality',quality)}catch{}
+ msg(quality==='rich'?'تم تفعيل مؤثرات الإضاءة والغلاف الجوي':'تم تفعيل المؤثرات الاقتصادية لتخفيف الحمل');
+});$('resetBtn').addEventListener('click',()=>{reset(true);msg('بدأت لعبة جديدة')});$('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 الصوت':'🔇 صامت';if(sound)beep(530,.09)});
 document.addEventListener('keydown',e=>{if(e.target instanceof HTMLButtonElement&&e.code==='Space')return;if(e.key==='1')choose('arrow');else if(e.key==='2')choose('cannon');else if(e.key==='3')choose('wind');else if(e.key.toLowerCase()==='p')pause();else if(e.key.toLowerCase()==='f'){$('speedBtn').click()}else if(e.code==='Space'){e.preventDefault();startWave()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='battle'){state='paused';updateUI()}});
 updateUI();requestAnimationFrame(frame);
 // Expose minimal diagnostic state for offline verification without changing gameplay.
-window.__oasisTest=()=>({state,level,wave,localWave:localWave(),gold,life,kills,towerLimit:towerLimit(),numberOfTowers:towers.length,towerTypes:towers.map(t=>t.type),slowedEnemies:enemies.filter(e=>e.slowTime>0).length,enemies:enemies.length,spawnLeft});
+window.__oasisTest=()=>({state,level,wave,localWave:localWave(),gold,life,kills,checkpointLevel:checkpoint.level,checkpointLife:checkpoint.life,checkpointGold:checkpoint.gold,checkpointWave:checkpoint.wave,towerLimit:towerLimit(),numberOfTowers:towers.length,towerTypes:towers.map(t=>t.type),slowedEnemies:enemies.filter(e=>e.slowTime>0).length,enemies:enemies.length,spawnLeft});
 })();
