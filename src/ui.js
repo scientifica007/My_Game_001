@@ -1,4 +1,4 @@
-export function createUI({world,$,cfg,LEVELS,WAVES,LEVEL_NAMES,active,localWave,towerLimit,upgradeCost}){
+export function createUI({world,$,cfg,LEVELS,WAVES,TOTAL_WAVES,LEVEL_NAMES,active,localWave,towerLimit,upgradeCost}){
 function msg(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(world.toastTimeout);world.toastTimeout=setTimeout(()=>$('toast').classList.remove('visible'),2200)}
 
 function showOverlay(icon,title,text,btn){$('modalIcon').textContent=icon;$('modalTitle').textContent=title;$('modalText').textContent=text;$('modalBtn').textContent=btn;$('overlay').classList.remove('hidden')}
