@@ -36,6 +36,12 @@ test('core tower actions, input and controls exist', () => {
   }
 });
 
+test('speed toggle and best-score storage are present', () => {
+  assert.match(html, /id="speedBtn"/);
+  assert.match(scriptTags[0][1], /oasis-defenders-best-score/);
+  assert.match(scriptTags[0][1], /function\s+frame\s*\(/);
+});
+
 test('no external script, stylesheet, or runtime network calls', () => {
   assert.doesNotMatch(html, /<link\b[^>]*rel="stylesheet"[^>]*href=/i);
   assert.doesNotMatch(html, /<script\b[^>]*src=/i);
