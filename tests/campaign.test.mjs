@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Script, runInNewContext } from 'node:vm';
+import { buildSync } from 'esbuild';
+import { resolve } from 'node:path';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const original=readFileSync(new URL('../assets/game.js',import.meta.url),'utf8');
+const original=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const configSource=readFileSync(new URL('../src/config.js',import.meta.url),'utf8');
 
 function boot() {
   class FakeElement {
@@ -26,11 +29,12 @@ function boot() {
     localStorage:{getItem(){return null;},setItem(){}},
     setTimeout(){return 1;},clearTimeout(){}};
   // Only accelerate the test renderer; keep actual gameplay simulation intact.
-  let script=original.replace("render(state==='paused'?0:dt*speed);","");
+  let script="import {enemyBlueprint} from './levels.js';\n"+original.replace("render(state==='paused'?0:dt*speed);","");
   const injection="window.__campaignHarness={enemyBlueprint,readyAt(newLevel){level=newLevel;wave=(newLevel-1)*WAVES;selectMap(level);gold=800;life=12;state='ready';towers=[];enemies=[];bullets=[];updateUI()},advanceLevel(){advanceLevel()},funds(amount){gold=amount;updateUI()},setLife(value){life=value;updateUI()},setWave(value){wave=value;updateUI()},path(){return PATH.map(a=>[...a])},towerInfo(){return towers.map(t=>({c:t.c,r:t.r,type:t.type,level:t.level}))}};})();";
   script=script.replace(/\}\)\(\);\s*$/,injection);
-  assert.doesNotThrow(()=>new Script(script));
-  runInNewContext(script,context,{timeout:1000});
+  const bundle=buildSync({stdin:{contents:script,resolveDir:resolve('src'),sourcefile:'src/main.js',loader:'js'},bundle:true,format:'iife',platform:'browser',write:false,logLevel:'silent'}).outputFiles[0].text;
+  assert.doesNotThrow(()=>new Script(bundle));
+  runInNewContext(bundle,context,{timeout:1000});
   function tick(count=1){for(let i=0;i<count;i++){ms+=45;frame(ms);}}
   function place(c,r,type='arrow'){elements.get(type+'Btn').click();elements.get('game').events.click({clientX:(c+.5)*64,clientY:(r+.5)*64});}
   elements.get('modalBtn').click();
@@ -40,7 +44,7 @@ function boot() {
 test('campaign displays three levels and fifteen waves',()=>{
   assert.match(html,/id="levelValue"/);
   assert.match(html,/3 مستويات · 15 موجة/);
-  assert.match(original,/LEVELS=3,TOTAL_WAVES=WAVES\*LEVELS/);
+  assert.match(configSource,/LEVELS=3,TOTAL_WAVES=WAVES\*LEVELS/);
   const g=boot();
   assert.equal(g.state().level,1);
   assert.equal(g.state().localWave,0);
