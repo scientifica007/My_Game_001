@@ -36,11 +36,16 @@ export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
     g.lineTo(x-11*scale,y+2*scale);g.closePath();g.fill();
   }
   function paintTerrain(g,world) {
-    g.fillStyle='#bd9d6a';g.fillRect(0,0,W,H);
+    const shades=[
+      {a:'#d1b68a',b:'#d9c095',c:'#bb986b',d:'#c5a478',road:'#e8cf9f',inner1:'#dac08f',inner2:'#c8a674'},
+      {a:'#c6a37f',b:'#ceaf8c',c:'#a98367',d:'#b58f6e',road:'#dfbd95',inner1:'#d5b18b',inner2:'#bb9677'},
+      {a:'#af9aa0',b:'#bba5a1',c:'#8c7a81',d:'#a08b8c',road:'#dbbfaa',inner1:'#d0af9d',inner2:'#b59894'}
+    ][Math.max(0,Math.min(2,world.level-1))];
+    g.fillStyle=shades.c;g.fillRect(0,0,W,H);
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const x=c*C,y=r*C,k=rand(c+1,r+1),isPath=world.pathSet.has(c+','+r);
       g.fillStyle=paintGradient(g,x,y,x+C,y+C,
-        [[0,(c+r)%2?'#d0b78c':'#d5bd93'],[1,(c+r)%2?'#b99a70':'#c2a77c']]);
+        [[0,(c+r)%2?shades.a:shades.b],[1,(c+r)%2?shades.c:shades.d]]);
       g.fillRect(x,y,C,C);
       g.fillStyle='rgba(255,245,214,.085)';g.fillRect(x,y,C,6);
       g.strokeStyle='rgba(119,85,52,.075)';g.strokeRect(x+.5,y+.5,C,C);
@@ -59,6 +64,11 @@ export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
         ellipse(g,x+34,y+37,2,1.5,'rgba(132,100,64,.23)');
       }
     }
+    // Sun haze occupies the atmospheric layer while keeping cells readable.
+    g.save();g.globalAlpha=world.level===3?.12:.17;
+    ellipse(g,668,54,41,37,'#fff2c9');
+    ellipse(g,668,54,66,59,'rgba(255,236,188,.29)');
+    g.restore();
     // Far dunes and transparent mountain silhouettes: spatial depth without
     // obscuring actionable cells or path outlines.
     g.save();g.globalAlpha=.10;g.fillStyle='#806d68';
@@ -75,9 +85,9 @@ export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
       if(c<0||c>=COLS||r<0||r>=ROWS)continue;
       const x=c*C,y=r*C,k=rand(c+9,r+15);
       round(g,x+3,y+5,C-4,C-4,10,'rgba(89,65,40,.20)');
-      round(g,x+1,y+1,C-2,C-2,9,'#e8cf9f');
+      round(g,x+1,y+1,C-2,C-2,9,shades.road);
       round(g,x+5,y+7,C-10,C-12,7,
-        paintGradient(g,x,y,x+C,y+C,[[0,'#dac08f'],[1,'#c8a674']]));
+        paintGradient(g,x,y,x+C,y+C,[[0,shades.inner1],[1,shades.inner2]]));
       ellipse(g,x+17+24*k,y+19+24*k,2.5,1.7,'rgba(251,227,180,.63)');
       ellipse(g,x+25+14*k,y+37-14*k,3,1.9,'rgba(120,83,51,.22)');
     }
