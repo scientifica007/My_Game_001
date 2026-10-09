@@ -124,3 +124,9 @@ canvas{position:relative;z-index:0}
 #qualityBtn:focus-visible{
   outline:2px solid #f0cd83;outline-offset:3px;
 }
+
+/* Stage-loss choices — keep both retry paths visible and keyboard accessible. */
+.retry-actions{display:flex;justify-content:center;align-items:stretch;gap:10px;flex-wrap:wrap}
+.retry-actions .btn{flex:1 1 150px;min-width:0}
+.retry-actions [hidden]{display:none!important}
+@media(max-width:540px){.retry-actions{flex-direction:column}.retry-actions .btn{width:100%}}
