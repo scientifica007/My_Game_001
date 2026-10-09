@@ -1,10 +1,14 @@
 import {createLandscape} from './landscape.js';
+import {createAmbience} from './ambience.js';
 import {drawTowerSprite,drawEnemySprite} from './sprites.js';
 
 // The renderer owns presentation only. Combat, health and stage progression
 // remain exclusively in simulation.js and main.js.
 export function createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active,valid,towerAt}){
   const landscape=createLandscape({ctx,W,H,C,COLS,ROWS,rand,center});
+  const ambience=createAmbience({ctx,W,H,center});
+  let quality='rich';
+  const setQuality=(value)=>{quality=value==='lite'?'lite':'rich';};
   const reducedMotion=typeof window!=='undefined'&&typeof window.matchMedia==='function'
     ?window.matchMedia('(prefers-reduced-motion: reduce)').matches:false;
   let visualTime=0;
@@ -94,12 +98,14 @@ export function createRenderer({world,ctx,W,H,C,COLS,ROWS,cfg,center,rand,active
     if(Number.isFinite(dt))visualTime+=Math.max(0,dt);
     ctx.clearRect(0,0,W,H);
     landscape.draw(world,visualTime,reducedMotion);
+    ambience.background(world,visualTime,{rich:quality==='rich',reducedMotion});
     drawHover();
     drawTowers();
     drawEnemies();
     drawBullets();
     drawFx(dt);
+    ambience.foreground(world,visualTime,{rich:quality==='rich',reducedMotion});
     drawPause();
   }
-  return {render};
+  return {render,setQuality};
 }
