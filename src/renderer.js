@@ -15,9 +15,9 @@ function drawMap(){
  ctx.fillStyle='#e9d2a0';const k=rand(c+3,r+8);ctx.beginPath();ctx.ellipse(x+15+35*k,y+20+26*k,3,2,0,0,Math.PI*2);ctx.fill()}
  ctx.save();ctx.setLineDash([5,10]);ctx.lineWidth=2;ctx.strokeStyle='#f7e4b36e';ctx.beginPath();world.PATH.forEach(([c,r],i)=>{const p=center(c,r);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});ctx.stroke();ctx.restore();
  // tiny water pool / oasis entrance
- ctx.save();const exit=center(...PATH[world.PATH.length-2]);ctx.translate(exit.x+12,exit.y);ctx.fillStyle='#295f65';ctx.beginPath();ctx.ellipse(0,1,24,28,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#70c4b5';ctx.beginPath();ctx.ellipse(0,0,17,21,0,0,Math.PI*2);ctx.fill();ctx.restore();
+ ctx.save();const exit=center(...world.PATH[world.PATH.length-2]);ctx.translate(exit.x+12,exit.y);ctx.fillStyle='#295f65';ctx.beginPath();ctx.ellipse(0,1,24,28,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#70c4b5';ctx.beginPath();ctx.ellipse(0,0,17,21,0,0,Math.PI*2);ctx.fill();ctx.restore();
  // path start marker
- const entry=center(...PATH[1]);rr(1,entry.y-15,50,18,9,'#1c3440d9');ctx.fillStyle='#f4dec1';ctx.font='bold 11px Tahoma';ctx.textAlign='center';ctx.fillText('الدخول',26,entry.y-2);
+ const entry=center(...world.PATH[1]);rr(1,entry.y-15,50,18,9,'#1c3440d9');ctx.fillStyle='#f4dec1';ctx.font='bold 11px Tahoma';ctx.textAlign='center';ctx.fillText('الدخول',26,entry.y-2);
 }
 
 function drawTowers(){for(const t of world.towers){const x=(t.c+.5)*C,y=(t.r+.5)*C,isSelected=world.selectedTower===t;
