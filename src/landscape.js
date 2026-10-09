@@ -8,7 +8,11 @@ export const ROAD_THEMES=Object.freeze([
   Object.freeze({frame:'#FBE9DA',road:'#EACFB6',inner1:'#D8AD88',inner2:'#B98361',
     shadow:'rgba(74,43,35,.35)',outline:'rgba(101,62,46,.52)',highlight:'rgba(255,244,229,.66)'}),
   Object.freeze({frame:'#F3EAF1',road:'#DDD0D8',inner1:'#C7B0BF',inner2:'#9F8598',
-    shadow:'rgba(47,39,56,.38)',outline:'rgba(76,54,78,.51)',highlight:'rgba(255,245,255,.65)'})
+    shadow:'rgba(47,39,56,.38)',outline:'rgba(76,54,78,.51)',highlight:'rgba(255,245,255,.65)'}),
+  Object.freeze({frame:'#FFEBD3',road:'#F2D4B7',inner1:'#E2BC9C',inner2:'#BA8D6D',
+    shadow:'rgba(80,43,29,.36)',outline:'rgba(107,62,45,.52)',highlight:'rgba(255,245,214,.70)'}),
+  Object.freeze({frame:'#F8F1E7',road:'#E6DDD1',inner1:'#D0C3BF',inner2:'#A59EAB',
+    shadow:'rgba(48,43,61,.43)',outline:'rgba(70,59,87,.60)',highlight:'rgba(255,255,239,.73)'})
 ]);
 export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
   let cache = null, cacheKey = '';
@@ -49,9 +53,11 @@ export function createLandscape({ctx,W,H,C,COLS,ROWS,rand,center}) {
     const shades=[
       {a:'#d1b68a',b:'#d9c095',c:'#bb986b',d:'#c5a478',road:'#e8cf9f',inner1:'#dac08f',inner2:'#c8a674'},
       {a:'#c6a37f',b:'#ceaf8c',c:'#a98367',d:'#b58f6e',road:'#dfbd95',inner1:'#d5b18b',inner2:'#bb9677'},
-      {a:'#af9aa0',b:'#bba5a1',c:'#8c7a81',d:'#a08b8c',road:'#dbbfaa',inner1:'#d0af9d',inner2:'#b59894'}
-    ][Math.max(0,Math.min(2,world.level-1))];
-    const road=ROAD_THEMES[Math.max(0,Math.min(2,world.level-1))];
+      {a:'#af9aa0',b:'#bba5a1',c:'#8c7a81',d:'#a08b8c',road:'#dbbfaa',inner1:'#d0af9d',inner2:'#b59894'},
+      {a:'#bba083',b:'#c5a98c',c:'#997b64',d:'#ad8e75',road:'#e9c5a3',inner1:'#d8ad8c',inner2:'#b38464'},
+      {a:'#888996',b:'#a4a3ae',c:'#6c7080',d:'#858995',road:'#dfd5d0',inner1:'#c9c0bf',inner2:'#a299a8'}
+    ][Math.max(0,Math.min(4,world.level-1))];
+    const road=ROAD_THEMES[Math.max(0,Math.min(4,world.level-1))];
     g.fillStyle=shades.c;g.fillRect(0,0,W,H);
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const x=c*C,y=r*C,k=rand(c+1,r+1),isPath=world.pathSet.has(c+','+r);
