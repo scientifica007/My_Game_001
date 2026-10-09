@@ -23,7 +23,7 @@ function simulate(dt){
  // alone is not a victory: the player must still be alive and in battle.
  if(world.state!=='battle')return;
  if(world.life<=0){world.life=0;lose();return}
- if(world.spawnLeft===0&&world.enemies.length===0){if(world.wave===TOTAL_WAVES){win()}else if(localWave()===WAVES){advanceLevel()}else{world.state='ready';const bonus=waveBonus(localWave());world.gold+=bonus;world.bullets=[];msg('نجحت! مكافأة الموجة: '+bonus+' ذهب');beep(650,.13);setTimeout(()=>beep(830,.2),140)}updateUI()}
+ if(world.spawnLeft===0&&world.enemies.length===0){if(world.wave===TOTAL_WAVES){win()}else if(localWave()===WAVES){advanceLevel()}else{world.state='ready';const bonus=waveBonus(localWave(),world.level);world.gold+=bonus;world.bullets=[];msg('نجحت! مكافأة الموجة: '+bonus+' ذهب');beep(650,.13);setTimeout(()=>beep(830,.2),140)}updateUI()}
 }
 return {simulate};
 }

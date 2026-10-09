@@ -11,7 +11,7 @@
 <div class="page">
   <header class="top">
     <div class="logo"><span class="emblem" aria-hidden="true">🌴</span><div><h1>حُماة الواحة</h1><div class="tag">OASIS DEFENDERS · لعبة دفاع استراتيجية</div></div></div>
-    <div class="topRight"><span class="pill">3 مستويات · 15 موجة · لا تحتاج إلى إنترنت</span><button id="soundBtn" class="btn small" type="button" aria-label="تبديل الصوت">🔊 الصوت</button><button id="speedBtn" class="btn small" type="button" aria-pressed="false" aria-label="تبديل سرعة اللعبة">⚡ السرعة ×1</button><button id="qualityBtn" class="btn small" type="button" aria-pressed="true" aria-label="تبديل جودة المؤثرات البصرية">✨ مؤثرات غنيّة</button><button id="resetBtn" class="btn small" type="button">↻ لعبة جديدة</button></div>
+    <div class="topRight"><span class="pill">5 مستويات · 25 موجة · لا تحتاج إلى إنترنت</span><button id="soundBtn" class="btn small" type="button" aria-label="تبديل الصوت">🔊 الصوت</button><button id="speedBtn" class="btn small" type="button" aria-pressed="false" aria-label="تبديل سرعة اللعبة">⚡ السرعة ×1</button><button id="qualityBtn" class="btn small" type="button" aria-pressed="true" aria-label="تبديل جودة المؤثرات البصرية">✨ مؤثرات غنيّة</button><button id="resetBtn" class="btn small" type="button">↻ لعبة جديدة</button></div>
   </header>
   <div class="layout">
     <main class="gamecol">
@@ -26,7 +26,7 @@
         <div class="canvasWrap">
           <canvas id="game" width="768" height="512" aria-label="خريطة لعبة حماة الواحة، اختر برجا ثم اضغط على أرض فارغة لبنائه">متصفحك لا يدعم لوحة الرسم.</canvas>
           <div id="overlay" class="overlay" role="dialog" aria-modal="true">
-            <div class="modal"><div id="modalIcon" class="modalIcon">🌴</div><h2 id="modalTitle">أنقذ الواحة!</h2><p id="modalText">احمِ الواحة عبر ثلاثة مستويات وخمس موجات في كل مستوى. كل موجة أصعب، وفي نهاية كل مستوى تبدأ بخريطة وميزانية جديدتين. لن تفوز بالإسراف أو بوضع الأبراج عشوائيًا.</p><button type="button" class="btn primary" id="modalBtn">ابدأ التخطيط ←</button></div>
+            <div class="modal"><div id="modalIcon" class="modalIcon">🌴</div><h2 id="modalTitle">أنقذ الواحة!</h2><p id="modalText">احمِ الواحة عبر خمسة مستويات وخمس موجات في كل مستوى. كل موجة أصعب، وفي نهاية كل مستوى تبدأ بخريطة وميزانية جديدتين. لن تفوز بالإسراف أو بوضع الأبراج عشوائيًا.</p><div class="retry-actions"><button type="button" class="btn primary" id="modalBtn">ابدأ التخطيط ←</button><button type="button" class="btn" id="restartCampaignBtn" hidden>إعادة الحملة من البداية</button></div></div>
           </div>
           <div id="toast" class="floatingToast" role="status" aria-live="polite"></div>
         </div>
@@ -39,7 +39,7 @@
         <button class="tower selected" id="arrowBtn" type="button" aria-pressed="true"><span class="towerIcon">🏹</span><span><span class="towerName">برج السهام</span><span class="towerDesc">هجوم سريع على هدف واحد</span></span><span class="price">55 ◈</span></button>
         <button class="tower" id="cannonBtn" type="button" aria-pressed="false"><span class="towerIcon">💣</span><span><span class="towerName">برج القذائف</span><span class="towerDesc">هجوم أبطأ يصيب عدة أعداء</span></span><span class="price">95 ◈</span></button>
         <button class="tower" id="windBtn" type="button" aria-pressed="false"><span class="towerIcon">🌬️</span><span><span class="towerName">برج الرياح</span><span class="towerDesc">ضرر خفيف وإبطاء الأعداء · الثقيل يقاوم جزئيًا</span></span><span class="price">80 ◈</span></button>
-        <div class="hint">يمكنك البناء <strong>قبل الموجة وأثناءها</strong>. لكل مستوى حدّ أقصى للأبراج: 8 ثم 7 ثم 6؛ استثمر في المواقع والترقيات، فالأبراج لا تنتقل بين المستويات.</div>
+        <div class="hint">يمكنك البناء <strong>قبل الموجة وأثناءها</strong>. حدود الأبراج للمستويات الخمسة: 8، 7، 6، 6، 6؛ استثمر في المواقع والترقيات، فالأبراج لا تنتقل بين المستويات.</div>
       </section>
       <section class="panel">
         <h3>قيادة المعركة <span class="sub" id="phaseLabel">الاستعداد</span></h3>
@@ -54,7 +54,7 @@
       </section>
     </aside>
   </div>
-  <div class="footer">لعبة مستقلة · 3 مستويات و15 موجة ونهاية محددة · تُحفظ أفضل نتيجة على جهازك إن سمح المتصفح بذلك</div>
+  <div class="footer">لعبة مستقلة · 5 مستويات و25 موجة ونهاية محددة · تُحفظ أفضل نتيجة على جهازك إن سمح المتصفح بذلك</div>
 </div>
 <script type="module" src="./src/main.js"></script>
 </body>
