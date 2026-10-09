@@ -36,15 +36,20 @@ function poof(x,y,color,n=9){for(let i=0;i<n;i++){const theta=(Math.PI*2*i/n)+Ma
 
 
 function advanceLevel(){
+ // A stage may be unlocked only by clearing its final wave alive.
+ // Never derive progression solely from the absence of enemies.
+ if(state!=='battle'||life<=0||level>=LEVELS||
+    localWave()!==WAVES||spawnLeft!==0||enemies.length!==0)return false;
  const savings=gold,previousLife=life;
  level++;selectMap(level);gold=stageBudget(level,savings);
  life=Math.min(12,life+3);towers=[];selectedTower=null;enemies=[];bullets=[];fx=[];hover=null;spawnLeft=0;
  state='intermission';updateUI();
  showOverlay('🛡️','المستوى '+level+' — '+LEVEL_NAMES[level-1],
  'خريطة جديدة وطريق أصعب، والأبراج القديمة لا تنتقل. الميزانية '+gold+' ذهب (تتضمن مكافأة ادخار محدودة)، وصحة الواحة '+life+' بعد استعادة '+(life-previousLife)+' نقاط. الحد الأقصى '+towerLimit()+' أبراج. اختر مواقع البناء بعناية.','الاستعداد للمستوى '+level);
+ return true;
 }
-function win(){state='won';const score=kills*10+life*25+gold;winCount++;bestScore=Math.max(bestScore,score);try{localStorage.setItem('oasis-defenders-wins',String(winCount));localStorage.setItem('oasis-defenders-best-score',String(bestScore))}catch(e){}showOverlay('🏆','انتصرت!','نجحت في حماية الواحة عبر المستويات الثلاثة والموجات الخمس عشرة. نتيجتك: '+score+' نقطة. أفضل نتيجة: '+bestScore+' نقطة. الانتصارات: '+winCount+'.','العب مرة أخرى');beep(700,.2);setTimeout(()=>beep(900,.28),210);updateUI()}
-function lose(){state='lost';enemies=[];bullets=[];showOverlay('🌪️','سقطت الواحة','وصل الأعداء إلى الواحة قبل انتهاء الدفاع. بلغت الموجة '+wave+' وقضيت على '+kills+' عدوًا. جرّب توزيع الأبراج قرب انعطافات الطريق.','حاول مجددًا');updateUI()}
+function win(){if(state!=='battle'||life<=0||wave!==TOTAL_WAVES||spawnLeft!==0||enemies.length!==0)return false;state='won';const score=kills*10+life*25+gold;winCount++;bestScore=Math.max(bestScore,score);try{localStorage.setItem('oasis-defenders-wins',String(winCount));localStorage.setItem('oasis-defenders-best-score',String(bestScore))}catch(e){}showOverlay('🏆','انتصرت!','نجحت في حماية الواحة عبر المستويات الثلاثة والموجات الخمس عشرة. نتيجتك: '+score+' نقطة. أفضل نتيجة: '+bestScore+' نقطة. الانتصارات: '+winCount+'.','العب مرة أخرى');beep(700,.2);setTimeout(()=>beep(900,.28),210);updateUI();return true}
+function lose(){if(state==='lost'||state==='won')return false;state='lost';enemies=[];bullets=[];showOverlay('🌪️','سقطت الواحة','وصل الأعداء إلى الواحة قبل انتهاء الدفاع. بلغت الموجة '+wave+' وقضيت على '+kills+' عدوًا. جرّب توزيع الأبراج قرب انعطافات الطريق.','حاول مجددًا');updateUI();return true}
 
 
 
