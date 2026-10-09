@@ -11,7 +11,7 @@ function simulate(dt){
  if(world.life<=0){world.life=0;lose();return;}
  world.spawnClock-=dt;if(world.spawnLeft>0&&world.spawnClock<=0){spawnEnemy();world.spawnClock=Math.max(.41,.86-localWave()*.045-(world.level-1)*.07)}
  for(const e of world.enemies){if(e.dead)continue;e.hit=Math.max(0,(e.hit||0)-dt);const slowedFor=Math.min(dt,e.slowTime);e.progress+=e.speed*(dt-slowedFor*e.slowStrength);e.slowTime=Math.max(0,e.slowTime-dt);if(e.slowTime===0)e.slowStrength=0;if(e.progress>=world.PATH.length-1){e.dead=true;world.life-=e.damage;poof(736,416,'#f9937c',12);beep(125,.15,'sawtooth');if(world.life<=0){world.life=0;lose();break}continue}
- const i=Math.floor(e.progress),f=e.progress-i,a=world.PATH[i],b=world.PATH[i+1];e.x=(a[0]+.5+(b[0]-a[0])*f)*C;e.y=(a[1]+.5+(b[1]-a[1])*f)*C}
+ const i=Math.floor(e.progress),f=e.progress-i,a=world.PATH[i],b=world.PATH[i+1];e.x=(a[0]+.5+(b[0]-a[0])*f)*C;e.y=(a[1]+.5+(b[1]-a[1])*f)*C;e.facing=Math.atan2(b[1]-a[1],b[0]-a[0])}
  world.enemies=world.enemies.filter(e=>!e.dead);
  if(world.state!=='battle')return;
  for(const t of world.towers){t.flash=Math.max(0,(t.flash||0)-dt);t.recoil=Math.max(0,(t.recoil||0)-dt*2.5);t.cd-=dt;const x=(t.c+.5)*C,y=(t.r+.5)*C,range=(cfg[t.type].range+.11*(t.level-1))*C;
