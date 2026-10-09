@@ -109,3 +109,18 @@ canvas{position:relative;z-index:0}
   .tower{transition:none}
   .tower:hover:not(:disabled){transform:none}
 }
+
+/* V2 — accessible scene-quality switch, with a clear economical state. */
+#qualityBtn{
+  border-color:rgba(204,181,132,.48);
+  background:linear-gradient(130deg,rgba(96,88,89,.38),rgba(29,62,72,.68));
+  color:#ffe9bc;
+}
+#qualityBtn[aria-pressed="false"]{
+  border-color:rgba(127,158,160,.37);
+  color:#c7dcd9;
+  background:rgba(25,48,62,.72);
+}
+#qualityBtn:focus-visible{
+  outline:2px solid #f0cd83;outline-offset:3px;
+}
