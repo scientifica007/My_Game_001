@@ -14,5 +14,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run dependency-free tests
-        run: node --test tests/game.test.mjs
+      - name: Install Vite and test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run modular gameplay and campaign tests
+        run: npm test
+      - name: Build production game
+        run: npm run build
+      - name: Verify release portability and size
+        run: npm run verify:release
+      - name: Attach publishable static build
+        uses: actions/upload-artifact@v4
+        with:
+          name: oasis-defenders-static-site
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

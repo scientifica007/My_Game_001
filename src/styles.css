@@ -1,0 +1,132 @@
+/* حماة الواحة: layout, controls, and responsive presentation */
+:root {--bg:#101a27;--panel:#172738;--panel2:#203449;--line:#31485b;--text:#f1f6ee;--muted:#a7bac8;--gold:#ffd27e;--green:#7de1a7;--red:#f58d84;--blue:#9bcaf5}
+* {box-sizing:border-box}
+body { margin:0; color:var(--text); background:radial-gradient(ellipse at 20% 0%,#294d52 0%,transparent 43%),radial-gradient(ellipse at 85% 90%,#233347 0%,transparent 52%),var(--bg);font-family:Tahoma,"Noto Sans Arabic",Arial,sans-serif;min-height:100vh}
+.page{max-width:1190px;margin:auto;padding:22px 18px 35px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:18px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.emblem{height:49px;width:49px;display:grid;place-items:center;background:linear-gradient(145deg,#e4b76e,#a96c40);border:2px solid #f3d397;border-radius:15px;font-size:25px;box-shadow:0 6px 20px #080e1566}
+h1{font-size:26px;line-height:1.25;margin:0;font-weight:800;letter-spacing:-.5px}
+.tag{font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:4px}
+.topRight{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.pill{border:1px solid var(--line);border-radius:100px;color:var(--muted);padding:9px 13px;font-size:12px;background:#132433bc}
+button {font-family:inherit;cursor:pointer;transition:filter .12s,background .12s,transform .12s;color:var(--text)}button:focus-visible{outline:3px solid #e4bc75;outline-offset:2px}button:active{transform:translateY(1px)}button:hover:not(:disabled){filter:brightness(1.13)}button:disabled{cursor:not-allowed;opacity:.45}
+.btn{border:1px solid #446174;border-radius:11px;background:#294258;padding:11px 15px;font-weight:700;font-size:13px}
+.btn.small{padding:8px 11px;font-size:12px}
+.btn.primary{background:linear-gradient(145deg,#e8bc78,#bc894d);border:1px solid #e5bf85;color:#1f211f;box-shadow:0 5px 13px #0c15262c}
+.btn.green{background:#235b50;border-color:#408b74;color:#c6ffe2}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:15px;align-items:start;direction:ltr}
+.gamecol{min-width:0;direction:rtl}
+.side{direction:rtl;display:flex;flex-direction:column;gap:13px}
+.gameframe{background:linear-gradient(145deg,#394a52,#162b38);border:1px solid #63817855;border-radius:18px;padding:10px;box-shadow:0 24px 65px #0005, inset 0 1px 0 #ffffff18;position:relative;overflow:hidden}
+.canvasWrap{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:3/2;background:#b9a072}
+canvas{display:block;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
+.overlay{position:absolute;inset:0;background:linear-gradient(120deg,#0e2736f0,#132432dd);z-index:3;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center}
+.overlay.hidden{display:none}
+.modal{max-width:390px;animation:rise .25s ease both}
+.modalIcon{font-size:47px;filter:drop-shadow(0 9px 9px #0006)}
+.modal h2{font-size:31px;margin:8px 0 9px;color:#f9e9c0}
+.modal p{color:#d4e4e6;font-size:14px;line-height:1.9;margin:0 0 15px}
+.modal .btn{padding:14px 23px;font-size:15px}
+@keyframes rise{from{opacity:.5;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.floatingToast{position:absolute;bottom:14px;right:50%;transform:translateX(50%);border:1px solid #e9c17b91;background:#1c303de8;color:#ffebbf;padding:10px 15px;min-width:145px;text-align:center;font-size:13px;border-radius:10px;z-index:2;pointer-events:none;opacity:0;transition:opacity .2s}
+.floatingToast.visible{opacity:1}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:0 0 13px}
+.stat{background:#182b3b;border:1px solid #344b5e;border-radius:13px;padding:11px 11px 9px;min-width:0}
+.statLabel{font-size:11px;color:#aec4cd}
+.statValue{font-family:Tahoma,Arial,sans-serif;direction:ltr;text-align:right;font-weight:800;font-size:21px;margin-top:4px}
+.statValue.gold{color:var(--gold)}.statValue.red{color:#ff9d96}.statValue.green{color:#95e9b0}
+.panel{background:linear-gradient(145deg,#21374a,#172b3b);border:1px solid #354f62;border-radius:16px;padding:15px;box-shadow:0 5px 16px #05090e1f}
+.panel h3{font-size:15px;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between}
+.sub{font-size:11px;font-weight:400;color:var(--muted)}
+.tower{width:100%;border:1px solid #37556a;background:#1a3040;padding:11px;border-radius:12px;display:flex;align-items:center;text-align:right;gap:10px;margin-bottom:8px}
+.tower.selected{border-color:#f4cd8c;box-shadow:inset 0 0 0 1px #f4cd8c55;background:#2e4146}
+.towerIcon{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;border-radius:12px;font-size:25px;background:#244451}
+.towerName{display:block;font-weight:750;font-size:13px;margin-bottom:4px}
+.towerDesc{display:block;color:#a8bac8;font-size:11px;line-height:1.5}
+.price{margin-right:auto;color:var(--gold);font-size:13px;font-weight:800;white-space:nowrap}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions button{min-height:43px}
+.hint{font-size:12px;line-height:1.85;color:#b5cad0}
+.hint strong{color:#e8d4b2}
+.info{min-height:71px;font-size:12px;line-height:1.9;color:#d8e6ea}
+.progress{height:7px;border-radius:15px;background:#0c1b29;overflow:hidden;margin-top:12px;border:1px solid #ffffff12}
+.progress .fill{width:0;height:100%;background:linear-gradient(90deg,#66c9a7,#e6c57e);transition:width .15s}
+.gamehelp{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;color:#b3c6ce;font-size:12px}
+.legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:5px}.dot.oasis{background:#72e0c7}.dot.road{background:#eed099}
+.footer{margin-top:14px;text-align:center;color:#809ca7;font-size:11px}
+@media (max-width:920px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:last-child{grid-column:1/-1}}
+@media (max-width:620px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.page{padding:13px 10px 24px}.top{margin-bottom:12px}h1{font-size:21px}.tag{font-size:10px}.emblem{height:41px;width:41px}.stats{gap:6px}.stat{padding:8px}.statValue{font-size:17px}.statLabel{font-size:10px}.gameframe{padding:5px;border-radius:12px}.canvasWrap{border-radius:7px}.side{display:flex}.panel{padding:12px}.modal h2{font-size:24px}.modal p{font-size:12px}.modalIcon{font-size:35px}.topRight .pill{display:none}}
+@media (prefers-reduced-motion: reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* Living Oasis visual refresh — no external textures or fonts. */
+body{
+  background:
+    radial-gradient(ellipse at 22% -15%,rgba(105,161,154,.23),transparent 47%),
+    radial-gradient(ellipse at 95% 80%,rgba(120,99,73,.19),transparent 48%),
+    linear-gradient(156deg,#0d2030 0%,#15293b 48%,#102332 100%);
+}
+.gameframe{
+  background:linear-gradient(140deg,#546774 0%,#294655 37%,#172d3b 100%);
+  border-color:rgba(184,215,203,.32);
+  box-shadow:0 24px 60px rgba(1,12,24,.39),inset 0 1px rgba(243,249,238,.23);
+}
+.canvasWrap{
+  background:#c3a578;
+  box-shadow:inset 0 0 0 2px rgba(35,57,56,.24);
+  isolation:isolate;
+}
+.canvasWrap::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  border-radius:inherit;
+  box-shadow:inset 0 0 32px rgba(37,37,34,.21),inset 0 1px 0 rgba(255,250,224,.17);
+}
+canvas{position:relative;z-index:0}
+.panel{
+  border-color:rgba(112,153,160,.35);
+  background:linear-gradient(147deg,rgba(36,62,76,.98),rgba(21,40,57,.98));
+  box-shadow:0 8px 23px rgba(0,10,21,.17),inset 0 1px rgba(224,245,230,.07);
+}
+.stat{
+  background:linear-gradient(160deg,rgba(31,56,69,.98),rgba(21,39,56,.98));
+  border-color:rgba(108,151,158,.34);
+  box-shadow:inset 0 1px rgba(240,255,241,.055);
+}
+.tower{
+  transition:border-color .18s,box-shadow .18s,background .18s,transform .18s;
+}
+.tower:hover:not(:disabled){transform:translateY(-1px);border-color:#86b6a6}
+.tower.selected{
+  background:linear-gradient(120deg,#304b49,#283f4e);
+  border-color:#f1ca8b;
+  box-shadow:inset 0 0 0 1px rgba(255,215,155,.30),0 0 18px rgba(230,195,122,.08);
+}
+.towerIcon{background:radial-gradient(circle at 35% 22%,#426a70,#244251)}
+.btn.primary{box-shadow:0 5px 16px rgba(219,167,86,.14),inset 0 1px rgba(255,248,215,.33)}
+.modal{filter:drop-shadow(0 6px 17px rgba(0,0,0,.28))}
+.progress .fill{box-shadow:0 0 8px rgba(117,211,174,.35)}
+@media (prefers-reduced-motion:reduce){
+  .tower{transition:none}
+  .tower:hover:not(:disabled){transform:none}
+}
+
+/* V2 — accessible scene-quality switch, with a clear economical state. */
+#qualityBtn{
+  border-color:rgba(204,181,132,.48);
+  background:linear-gradient(130deg,rgba(96,88,89,.38),rgba(29,62,72,.68));
+  color:#ffe9bc;
+}
+#qualityBtn[aria-pressed="false"]{
+  border-color:rgba(127,158,160,.37);
+  color:#c7dcd9;
+  background:rgba(25,48,62,.72);
+}
+#qualityBtn:focus-visible{
+  outline:2px solid #f0cd83;outline-offset:3px;
+}
+
+/* Stage-loss choices — keep both retry paths visible and keyboard accessible. */
+.retry-actions{display:flex;justify-content:center;align-items:stretch;gap:10px;flex-wrap:wrap}
+.retry-actions .btn{flex:1 1 150px;min-width:0}
+.retry-actions [hidden]{display:none!important}
+@media(max-width:540px){.retry-actions{flex-direction:column}.retry-actions .btn{width:100%}}
